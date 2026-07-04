@@ -65,3 +65,18 @@ body {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(12px);
 }
+
+/** Animation cho đường link trong HeroTopology. */
+.topo-dash {
+  animation: topo-dash-move 1.6s linear infinite;
+}
+
+.topo-dash-delay {
+  animation-delay: 0.8s;
+}
+
+@keyframes topo-dash-move {
+  to {
+    stroke-dashoffset: -16;
+  }
+}

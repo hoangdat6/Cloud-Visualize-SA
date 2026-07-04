@@ -61,7 +61,7 @@ export function GalleryClient({ simulations, filterOptions }: GalleryClientProps
   }, [simulations, query, cloud, domain, difficulty]);
 
   return (
-    <div id="gallery" className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <FilterBar
         query={query}
         onQueryChange={(value) => updateParams({ q: value })}
