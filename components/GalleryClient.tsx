@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FilterBar } from "@/components/FilterBar";
 import { SimulationCard } from "@/components/SimulationCard";
 import type { FilterOptions } from "@/lib/catalog";
@@ -11,11 +12,38 @@ interface GalleryClientProps {
   filterOptions: FilterOptions;
 }
 
+function readParam<T extends string>(value: string | null, allowed: readonly T[]): T | "all" {
+  if (value && (allowed as readonly string[]).includes(value)) {
+    return value as T;
+  }
+  return "all";
+}
+
 export function GalleryClient({ simulations, filterOptions }: GalleryClientProps) {
-  const [query, setQuery] = useState("");
-  const [cloud, setCloud] = useState<Cloud | "all">("all");
-  const [domain, setDomain] = useState<Domain | "all">("all");
-  const [difficulty, setDifficulty] = useState<Difficulty | "all">("all");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const query = searchParams.get("q") ?? "";
+  const cloud = readParam<Cloud>(searchParams.get("cloud"), filterOptions.clouds);
+  const domain = readParam<Domain>(searchParams.get("domain"), filterOptions.domains);
+  const difficulty = readParam<Difficulty>(searchParams.get("difficulty"), filterOptions.difficulties);
+
+  const updateParams = useCallback(
+    (updates: Record<string, string>) => {
+      const next = new URLSearchParams(searchParams.toString());
+      for (const [key, value] of Object.entries(updates)) {
+        if (value === "" || value === "all") {
+          next.delete(key);
+        } else {
+          next.set(key, value);
+        }
+      }
+      const queryString = next.toString();
+      router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false });
+    },
+    [pathname, router, searchParams]
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -33,16 +61,16 @@ export function GalleryClient({ simulations, filterOptions }: GalleryClientProps
   }, [simulations, query, cloud, domain, difficulty]);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div id="gallery" className="flex flex-col gap-6">
       <FilterBar
         query={query}
-        onQueryChange={setQuery}
+        onQueryChange={(value) => updateParams({ q: value })}
         cloud={cloud}
-        onCloudChange={setCloud}
+        onCloudChange={(value) => updateParams({ cloud: value })}
         domain={domain}
-        onDomainChange={setDomain}
+        onDomainChange={(value) => updateParams({ domain: value })}
         difficulty={difficulty}
-        onDifficultyChange={setDifficulty}
+        onDifficultyChange={(value) => updateParams({ difficulty: value })}
         options={filterOptions}
         resultCount={filtered.length}
       />

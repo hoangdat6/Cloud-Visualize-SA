@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { SITE } from "@/lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,9 +14,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CloudViz SA — Thư viện mô phỏng kiến trúc Cloud",
-  description:
-    "Thư viện mô phỏng tương tác các kiến trúc Solution Architect trên AWS, Azure, GCP — tìm, xem và học hiểu từng thành phần.",
+  metadataBase: new URL(SITE.url),
+  title: `${SITE.name} — Thư viện mô phỏng kiến trúc Cloud`,
+  description: SITE.description,
+  openGraph: {
+    title: SITE.name,
+    description: SITE.description,
+    url: SITE.url,
+    siteName: SITE.name,
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: SITE.name,
+    description: SITE.description,
+  },
 };
 
 export default function RootLayout({
@@ -27,8 +40,11 @@ export default function RootLayout({
     <html
       lang="vi"
       className={`${geistSans.variable} ${geistMono.variable} h-full bg-slate-950 text-slate-100 antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-slate-950">{children}</body>
+      <body className="min-h-full flex flex-col bg-slate-950" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }

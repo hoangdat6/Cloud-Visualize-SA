@@ -1,0 +1,46 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
+import { simulations } from "../data/simulations";
+
+const PUBLIC_DIR = path.join(process.cwd(), "public");
+
+function fail(messages: string[]): never {
+  console.error("\n❌ Manifest không hợp lệ:\n");
+  for (const message of messages) {
+    console.error(`  - ${message}`);
+  }
+  console.error("");
+  process.exit(1);
+}
+
+function main() {
+  const errors: string[] = [];
+  const seenSlugs = new Set<string>();
+
+  for (const sim of simulations) {
+    if (seenSlugs.has(sim.slug)) {
+      errors.push(`Slug bị trùng: "${sim.slug}"`);
+    }
+    seenSlugs.add(sim.slug);
+
+    const htmlFile = path.join(PUBLIC_DIR, sim.htmlPath.replace(/^\//, ""));
+    if (!existsSync(htmlFile)) {
+      errors.push(`[${sim.slug}] htmlPath không tồn tại: ${sim.htmlPath}`);
+    }
+
+    if (sim.thumbnail) {
+      const thumbFile = path.join(PUBLIC_DIR, sim.thumbnail.replace(/^\//, ""));
+      if (!existsSync(thumbFile)) {
+        errors.push(`[${sim.slug}] thumbnail không tồn tại: ${sim.thumbnail}`);
+      }
+    }
+  }
+
+  if (errors.length > 0) {
+    fail(errors);
+  }
+
+  console.log(`✅ Manifest hợp lệ: ${simulations.length} mô phỏng.`);
+}
+
+main();

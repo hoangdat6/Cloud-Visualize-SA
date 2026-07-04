@@ -29,6 +29,10 @@ Thêm một mô phỏng chỉ gồm vài bước, không cần chạm vào code 
 },
 ```
 
+> Có thể bổ sung thêm (tuỳ chọn, cho trang chi tiết phong phú hơn): `longDescription` (mô tả dài),
+> `objectives` (mảng mục tiêu học), `components` (mảng `{ name, description }` các thành phần
+> chính). Nếu bỏ trống, trang chi tiết tự ẩn các mục tương ứng.
+
 4. **Commit & push** → Vercel tự build và deploy. Mô phỏng xuất hiện trong gallery, có URL
    `/s/azure-hub-spoke`.
 
@@ -44,5 +48,6 @@ Thêm một mô phỏng chỉ gồm vài bước, không cần chạm vào code 
 
 - **Đặt tên file** theo mẫu `provider_chu-de.html` để dễ quản lý (`aws_...`, `azure_...`).
 - **Tags nhất quán**: dùng đúng tên dịch vụ chính thức để tìm kiếm hiệu quả.
-- Nếu có script validation (xem [03](./03-mo-hinh-du-lieu.md)), chạy nó trước khi commit để bắt
-  lỗi khai báo sớm.
+- Chạy `npm run validate` trước khi commit để bắt sớm lỗi khai báo (slug trùng, đường dẫn file
+  không tồn tại). Lệnh này cũng tự chạy trước `npm run build` (`prebuild`), nên build sẽ fail nếu
+  manifest sai.

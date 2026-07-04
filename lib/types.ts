@@ -31,6 +31,12 @@ export interface Simulation {
   htmlPath: string;
   /** Ảnh thumbnail trong public/ (tuỳ chọn). */
   thumbnail?: string;
+  /** Mô tả dài cho trang chi tiết (nếu bỏ trống, dùng `description`). */
+  longDescription?: string;
+  /** Mục tiêu học được khi xem mô phỏng này. */
+  objectives?: string[];
+  /** Các thành phần chính xuất hiện trong mô phỏng. */
+  components?: { name: string; description: string }[];
   /** Ngày tạo/cập nhật (ISO date, dùng để sắp xếp). */
   createdAt: string;
 }

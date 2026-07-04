@@ -48,6 +48,7 @@ tìm kiếm, lọc và mở từng mô phỏng trong một khung `<iframe>`.
 | 05 | [Render & iframe](./05-render-va-iframe.md) | Cơ chế nhúng, sandbox, đánh đổi bảo mật |
 | 06 | [Quy trình thêm mô phỏng](./06-quy-trinh-them-mo-phong.md) | Các bước thêm nội dung mới |
 | 07 | [Lộ trình tương lai](./07-lo-trinh-tuong-lai.md) | Các hướng mở rộng có thể có |
+| 08 | [Tính năng mở rộng v2](./08-tinh-nang-mo-rong-v2.md) | Detail/play route, bookmark, filter URL, landing, SEO, validate manifest |
 
 ---
 

@@ -3,6 +3,8 @@ import Image from "next/image";
 import type { Simulation } from "@/lib/types";
 import { CLOUD_LABELS, DIFFICULTY_LABELS } from "@/lib/types";
 import { CLOUD_BADGE_CLASSES, CLOUD_CARD_ACCENT, DIFFICULTY_BADGE_CLASSES } from "@/lib/badges";
+import { BookmarkButton } from "@/components/BookmarkButton";
+import { ViewedBadge } from "@/components/ViewedBadge";
 
 export function SimulationCard({ simulation }: { simulation: Simulation }) {
   const visibleTags = simulation.tags.slice(0, 3);
@@ -28,6 +30,12 @@ export function SimulationCard({ simulation }: { simulation: Simulation }) {
             {CLOUD_LABELS[simulation.cloud]}
           </span>
         )}
+
+        <div className="absolute right-2 top-2">
+          <BookmarkButton slug={simulation.slug} />
+        </div>
+
+        <ViewedBadge slug={simulation.slug} className="absolute bottom-2 left-2" />
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
