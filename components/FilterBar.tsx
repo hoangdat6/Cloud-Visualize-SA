@@ -1,6 +1,9 @@
+"use client";
+
 import type { Cloud, Difficulty, Domain } from "@/lib/types";
 import { CLOUD_LABELS, DIFFICULTY_LABELS, DOMAIN_LABELS } from "@/lib/types";
 import type { FilterOptions } from "@/lib/catalog";
+import { Select } from "@/components/ui/Select";
 
 interface FilterBarProps {
   query: string;
@@ -27,8 +30,20 @@ export function FilterBar({
   options,
   resultCount,
 }: FilterBarProps) {
-  const selectClasses =
-    "rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-2 text-xs font-medium text-slate-200 transition focus:border-sky-500/60 focus:outline-none focus:ring-2 focus:ring-sky-500/30";
+  const cloudOptions = [
+    { value: "all", label: "All clouds" },
+    ...options.clouds.map((c) => ({ value: c, label: CLOUD_LABELS[c] })),
+  ];
+
+  const domainOptions = [
+    { value: "all", label: "All domains" },
+    ...options.domains.map((d) => ({ value: d, label: DOMAIN_LABELS[d] })),
+  ];
+
+  const difficultyOptions = [
+    { value: "all", label: "All levels" },
+    ...options.difficulties.map((d) => ({ value: d, label: DIFFICULTY_LABELS[d] })),
+  ];
 
   return (
     <div className="glass-card flex flex-col gap-3 p-4 shadow-xl shadow-black/10 sm:flex-row sm:items-center">
@@ -56,44 +71,24 @@ export function FilterBar({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <select
+        <Select
           value={cloud}
-          onChange={(e) => onCloudChange(e.target.value as Cloud | "all")}
-          className={selectClasses}
-        >
-          <option value="all">All clouds</option>
-          {options.clouds.map((c) => (
-            <option key={c} value={c}>
-              {CLOUD_LABELS[c]}
-            </option>
-          ))}
-        </select>
-
-        <select
+          onValueChange={(value) => onCloudChange(value as Cloud | "all")}
+          options={cloudOptions}
+          ariaLabel="Filter by cloud"
+        />
+        <Select
           value={domain}
-          onChange={(e) => onDomainChange(e.target.value as Domain | "all")}
-          className={selectClasses}
-        >
-          <option value="all">All domains</option>
-          {options.domains.map((d) => (
-            <option key={d} value={d}>
-              {DOMAIN_LABELS[d]}
-            </option>
-          ))}
-        </select>
-
-        <select
+          onValueChange={(value) => onDomainChange(value as Domain | "all")}
+          options={domainOptions}
+          ariaLabel="Filter by domain"
+        />
+        <Select
           value={difficulty}
-          onChange={(e) => onDifficultyChange(e.target.value as Difficulty | "all")}
-          className={selectClasses}
-        >
-          <option value="all">All levels</option>
-          {options.difficulties.map((d) => (
-            <option key={d} value={d}>
-              {DIFFICULTY_LABELS[d]}
-            </option>
-          ))}
-        </select>
+          onValueChange={(value) => onDifficultyChange(value as Difficulty | "all")}
+          options={difficultyOptions}
+          ariaLabel="Filter by difficulty"
+        />
       </div>
 
       <span className="shrink-0 text-xs text-slate-500">

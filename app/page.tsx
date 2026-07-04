@@ -108,7 +108,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <main id="gallery" className="mx-auto w-full max-w-6xl flex-1 px-6 pb-16">
+      <main id="gallery" className="mx-auto w-full max-w-6xl flex-1 pb-16">
         <div className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-lg font-bold text-white">Simulation library</h2>
