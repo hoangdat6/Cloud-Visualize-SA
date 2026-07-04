@@ -50,7 +50,7 @@ export function HeroTopology() {
             viewBox="0 0 400 320"
             className="relative h-full w-full"
             role="img"
-            aria-label="Mô phỏng topology cloud: On-Prem kết nối AWS qua Direct Connect và Transit Gateway"
+            aria-label="Cloud topology preview: on-premises connected to AWS via Direct Connect and Transit Gateway"
           >
             <defs>
               <linearGradient id="link-sky" x1="0%" y1="0%" x2="100%" y2="0%">

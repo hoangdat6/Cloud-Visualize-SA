@@ -77,8 +77,8 @@ export function GalleryClient({ simulations, filterOptions }: GalleryClientProps
 
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-800 py-20 text-center text-slate-500">
-          <p className="text-sm">Không tìm thấy mô phỏng phù hợp.</p>
-          <p className="text-xs">Thử điều chỉnh từ khoá hoặc bộ lọc.</p>
+          <p className="text-sm">No simulations match your filters.</p>
+          <p className="text-xs">Try a different keyword or filter.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

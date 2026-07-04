@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: PlayPageProps): Promise<Metad
   const simulation = getSimulationBySlug(slug);
   if (!simulation) return {};
   return {
-    title: `${simulation.title} — Đang chạy — CloudViz SA`,
+    title: `${simulation.title} — Playing — CloudViz SA`,
     description: simulation.description,
   };
 }
@@ -43,7 +43,7 @@ export default async function PlayPage({ params }: PlayPageProps) {
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Chi tiết
+            Details
           </Link>
           <div className="min-w-0">
             <h1 className="truncate text-sm font-bold text-white">{simulation.title}</h1>
@@ -68,7 +68,7 @@ export default async function PlayPage({ params }: PlayPageProps) {
           rel="noopener noreferrer"
           className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-sky-500/50 hover:text-sky-300"
         >
-          Mở tab mới
+          Open in new tab
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
               strokeLinecap="round"

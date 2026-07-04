@@ -13,31 +13,31 @@ export type Domain =
 export type Difficulty = "beginner" | "intermediate" | "advanced";
 
 export interface Simulation {
-  /** Định danh dùng cho URL, duy nhất. Ví dụ: "aws-direct-connect". */
+  /** Unique URL identifier. Example: "aws-direct-connect". */
   slug: string;
-  /** Tên hiển thị trên card & player. */
+  /** Display name on cards and player. */
   title: string;
-  /** Mô tả ngắn (1–2 câu) cho card và SEO. */
+  /** Short description (1–2 sentences) for cards and SEO. */
   description: string;
-  /** Nhà cung cấp cloud (dùng để lọc + badge). */
+  /** Cloud provider (filter + badge). */
   cloud: Cloud;
-  /** Lĩnh vực kiến trúc (dùng để lọc). */
+  /** Architecture domain (filter). */
   domain: Domain;
-  /** Mức độ khó (dùng để lọc + badge). */
+  /** Difficulty level (filter + badge). */
   difficulty: Difficulty;
-  /** Từ khoá tự do để tìm kiếm & gợi ý. */
+  /** Free-form tags for search. */
   tags: string[];
-  /** Đường dẫn tới file HTML trong public/. Bắt đầu bằng "/". */
+  /** Path to the HTML file under public/. Must start with "/". */
   htmlPath: string;
-  /** Ảnh thumbnail trong public/ (tuỳ chọn). */
+  /** Thumbnail under public/ (optional). */
   thumbnail?: string;
-  /** Mô tả dài cho trang chi tiết (nếu bỏ trống, dùng `description`). */
+  /** Long description for the detail page (falls back to `description`). */
   longDescription?: string;
-  /** Mục tiêu học được khi xem mô phỏng này. */
+  /** Learning objectives for this simulation. */
   objectives?: string[];
-  /** Các thành phần chính xuất hiện trong mô phỏng. */
+  /** Key components shown in the simulation. */
   components?: { name: string; description: string }[];
-  /** Ngày tạo/cập nhật (ISO date, dùng để sắp xếp). */
+  /** Created/updated date (ISO date, used for sorting). */
   createdAt: string;
 }
 

@@ -47,7 +47,7 @@ export function BookmarkButton({ slug, size = "sm" }: BookmarkButtonProps) {
         }`}
       >
         {icon}
-        {bookmarked ? "Đã lưu" : "Lưu mô phỏng"}
+        {bookmarked ? "Saved" : "Save simulation"}
       </button>
     );
   }
@@ -57,7 +57,7 @@ export function BookmarkButton({ slug, size = "sm" }: BookmarkButtonProps) {
       type="button"
       onClick={handleClick}
       aria-pressed={bookmarked}
-      aria-label={bookmarked ? "Bỏ đánh dấu mô phỏng" : "Đánh dấu mô phỏng"}
+      aria-label={bookmarked ? "Remove bookmark" : "Bookmark simulation"}
       className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border backdrop-blur-sm transition ${
         bookmarked
           ? "border-amber-400/60 bg-amber-400/20 text-amber-300"

@@ -59,7 +59,7 @@ export default async function DetailPage({ params }: DetailPageProps) {
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Quay lại thư viện
+            Back to library
           </Link>
         </div>
       </header>
@@ -88,7 +88,7 @@ export default async function DetailPage({ params }: DetailPageProps) {
         {simulation.objectives && simulation.objectives.length > 0 && (
           <section className="glass-card p-5">
             <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">
-              Mục tiêu học
+              Learning objectives
             </h2>
             <ul className="flex flex-col gap-2">
               {simulation.objectives.map((objective) => (
@@ -104,7 +104,7 @@ export default async function DetailPage({ params }: DetailPageProps) {
         {simulation.components && simulation.components.length > 0 && (
           <section className="glass-card p-5">
             <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">
-              Thành phần chính
+              Key components
             </h2>
             <dl className="flex flex-col gap-3">
               {simulation.components.map((component) => (
@@ -132,7 +132,7 @@ export default async function DetailPage({ params }: DetailPageProps) {
           <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
             <path d="M8 5v14l11-7z" />
           </svg>
-          Mở mô phỏng
+          Open simulation
         </Link>
       </main>
     </div>

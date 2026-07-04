@@ -1,39 +1,39 @@
 import type { Simulation } from "@/lib/types";
 
 /**
- * Manifest — nguồn sự thật duy nhất về danh mục mô phỏng.
- * Xem docs/06-quy-trinh-them-mo-phong.md để biết cách thêm mục mới.
+ * Manifest — single source of truth for the simulation catalog.
+ * See docs/06-quy-trinh-them-mo-phong.md for how to add a new entry.
  */
 export const simulations: Simulation[] = [
   {
     slug: "aws-direct-connect",
     title: "AWS Direct Connect — Global Topology",
     description:
-      "Mổ xẻ topology Direct Connect + Transit Gateway đa VPC: Private/Transit/Public VIF, BGP, cross-connect, chế độ xem Physical/Logical.",
+      "Explore Direct Connect + Transit Gateway multi-VPC topology: Private/Transit/Public VIFs, BGP, cross-connect, Physical/Logical views.",
     longDescription:
-      "Mô phỏng chi tiết kiến trúc AWS Direct Connect kết nối On-Premise với AWS qua Direct Connect Gateway và Transit Gateway. Chuyển đổi giữa chế độ xem vật lý (cáp quang, cross-connect, PE Router) và logic (VLAN/VIF, định tuyến BGP) để hiểu rõ từng lớp của kết nối. Kích hoạt mô phỏng luồng gói tin cho 3 loại VIF (Private, Transit, Public) và bấm vào từng thiết bị để xem cấu hình chi tiết.",
+      "A detailed walkthrough of AWS Direct Connect linking on-premises networks to AWS through Direct Connect Gateway and Transit Gateway. Switch between physical view (fiber, cross-connect, PE router) and logical view (VLAN/VIF, BGP routing) to understand each layer of the connection. Run packet-flow simulations for all three VIF types (Private, Transit, Public) and click devices for configuration details.",
     objectives: [
-      "Phân biệt Private VIF, Transit VIF và Public VIF",
-      "Hiểu vai trò của Direct Connect Gateway trong việc kết nối nhiều VPC/tài khoản",
-      "Nắm được cách Transit Gateway định tuyến giữa on-premise và các VPC spoke",
-      "Nhận diện điểm phân định trách nhiệm vật lý (cross-connect, demarcation) giữa khách hàng và AWS",
+      "Distinguish Private VIF, Transit VIF, and Public VIF",
+      "Understand Direct Connect Gateway’s role when connecting multiple VPCs and accounts",
+      "See how Transit Gateway routes traffic between on-premises and spoke VPCs",
+      "Identify the physical demarcation (cross-connect) between customer and AWS",
     ],
     components: [
       {
         name: "Customer Edge (CE) Router",
-        description: "Router BGP phía khách hàng, kết nối MACsec/BFD tới AWS.",
+        description: "Customer-side BGP router, with MACsec/BFD toward AWS.",
       },
       {
         name: "AWS Direct Connect Endpoint",
-        description: "Điểm neo dịch vụ nhận kết nối vật lý và phân phối vào VIFs.",
+        description: "Service endpoint that terminates the physical link and fans out into VIFs.",
       },
       {
         name: "Direct Connect Gateway (DXGW)",
-        description: "Hub logic toàn cầu, trung chuyển tuyến giữa CE Router và Transit Gateway.",
+        description: "Global logical hub that relays routes between the CE router and Transit Gateway.",
       },
       {
         name: "Transit Gateway (TGW)",
-        description: "Router trung tâm hub-and-spoke kết nối nhiều VPC qua các attachment.",
+        description: "Hub-and-spoke router connecting multiple VPCs through attachments.",
       },
     ],
     cloud: "aws",

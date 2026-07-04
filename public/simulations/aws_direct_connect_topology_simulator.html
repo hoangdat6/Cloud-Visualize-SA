@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi" class="h-full bg-slate-950 text-slate-100">
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -73,7 +73,7 @@
                     AWS DX Architecture Deep Dive
                     <span class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded font-mono normal-case">V5.0 AI Architect Copilot</span>
                 </h1>
-                <p class="text-xs text-slate-400 mt-0.5">Mổ xẻ Transit Gateway đa VPC, hỗ trợ Zoom/Pan và Trợ lý AI Gemini sinh mã nguồn (IaC)</p>
+                <p class="text-xs text-slate-400 mt-0.5">Multi-VPC Transit Gateway deep dive with zoom/pan and Gemini AI for IaC generation</p>
             </div>
         </div>
 
@@ -97,30 +97,30 @@
             
             <!-- Scenarios -->
             <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 shadow-xl shrink-0">
-                <h2 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-800 pb-2">Kích hoạt luồng kiểm thử</h2>
+                <h2 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-800 pb-2">Run traffic scenarios</h2>
                 <div class="flex flex-col gap-2">
                     <button onclick="runSimulation('private')" class="group text-left p-3 rounded-lg border border-slate-800 bg-slate-950/50 hover:border-sky-500/50 transition focus:outline-none flex flex-col gap-1">
                         <div class="flex justify-between items-center w-full">
-                            <span class="text-xs font-bold text-sky-400">1. Luồng Private VIF</span>
+                            <span class="text-xs font-bold text-sky-400">1. Private VIF flow</span>
                             <span class="text-[9px] font-mono bg-sky-500/20 text-sky-300 px-1.5 py-0.5 rounded">VLAN 100</span>
                         </div>
-                        <span class="text-[10px] text-slate-400">Vào VPC Single qua DX Gateway & VGW.</span>
+                        <span class="text-[10px] text-slate-400">Into a single VPC via DX Gateway & VGW.</span>
                     </button>
 
                     <button onclick="runSimulation('transit')" class="group text-left p-3 rounded-lg border border-slate-800 bg-slate-950/50 hover:border-purple-500/50 transition focus:outline-none flex flex-col gap-1">
                         <div class="flex justify-between items-center w-full">
-                            <span class="text-xs font-bold text-purple-400">2. Luồng Transit VIF</span>
+                            <span class="text-xs font-bold text-purple-400">2. Transit VIF flow</span>
                             <span class="text-[9px] font-mono bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded">VLAN 200</span>
                         </div>
-                        <span class="text-[10px] text-slate-400">Vào VPC Prod thông qua Hub Transit Gateway (TGW).</span>
+                        <span class="text-[10px] text-slate-400">Into Prod VPC through the Transit Gateway (TGW) hub.</span>
                     </button>
 
                     <button onclick="runSimulation('public')" class="group text-left p-3 rounded-lg border border-slate-800 bg-slate-950/50 hover:border-orange-500/50 transition focus:outline-none flex flex-col gap-1">
                         <div class="flex justify-between items-center w-full">
-                            <span class="text-xs font-bold text-orange-400">3. Luồng Public VIF</span>
+                            <span class="text-xs font-bold text-orange-400">3. Public VIF flow</span>
                             <span class="text-[9px] font-mono bg-orange-500/20 text-orange-300 px-1.5 py-0.5 rounded">VLAN 300</span>
                         </div>
-                        <span class="text-[10px] text-slate-400">Vào thẳng S3. <strong class="text-orange-300">NÉ DXGW hoàn toàn.</strong></span>
+                        <span class="text-[10px] text-slate-400">Straight to S3. <strong class="text-orange-300">Bypasses DXGW entirely.</strong></span>
                     </button>
                 </div>
             </div>
@@ -140,7 +140,7 @@
                     <svg class="h-10 w-10 mb-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
                     </svg>
-                    <p class="text-xs max-w-[250px]">Dùng chuột cuộn/kéo trên sơ đồ để khám phá.<br><br>Click vào thiết bị bất kỳ để xem cấu hình chuyên sâu và yêu cầu AI sinh mã.</p>
+                    <p class="text-xs max-w-[250px]">Scroll or drag the diagram to explore.<br><br>Click any device for deep-dive config and AI-generated code.</p>
                 </div>
 
                 <div id="inspector-content" class="hidden flex flex-col h-full overflow-hidden">
@@ -175,29 +175,29 @@
                         <!-- Chat Output Area -->
                         <div id="ai-chat-history" class="flex-1 overflow-y-auto pr-2 flex flex-col gap-3 mb-3 text-[11px] leading-relaxed text-slate-300 markdown-body">
                             <div class="bg-indigo-900/30 border border-indigo-500/30 rounded-lg p-3 text-indigo-200">
-                                Xin chào! Tôi là Trợ lý Mạng AI (Gemini). Hãy chọn một tính năng bên dưới để tôi hỗ trợ bạn thao tác với <b id="ai-context-node-name" class="text-indigo-400">thiết bị này</b>.
+                                Hi! I'm your Network AI assistant (Gemini). Pick an action below to work with <b id="ai-context-node-name" class="text-indigo-400">this device</b>.
                             </div>
                         </div>
                         <div id="ai-error" class="hidden bg-red-900/40 border border-red-500/50 text-red-200 rounded p-2 text-[10px] mb-2">
-                            Lỗi kết nối tới AI. Vui lòng thử lại.
+                            AI connection error. Please try again.
                         </div>
                         
                         <!-- AI Actions Grid -->
                         <div class="shrink-0 flex flex-col gap-2">
                             <div class="grid grid-cols-2 gap-2">
                                 <button id="btn-ai-analyze" onclick="requestAIAnalysis()" class="py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-[10px] font-bold transition border border-slate-600 hover:border-slate-400 flex justify-center items-center gap-1.5">
-                                    🔍 Rủi ro & Kiến trúc
+                                    🔍 Risks & architecture
                                 </button>
                                 <button id="btn-ai-iac" onclick="generateIaC()" class="py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold transition border border-indigo-500 hover:border-indigo-400 flex justify-center items-center gap-1.5 shadow-lg shadow-indigo-500/20">
-                                    💻 Sinh Code IaC ✨
+                                    💻 Generate IaC ✨
                                 </button>
                                 <button id="btn-ai-outage" onclick="simulateOutage()" class="col-span-2 py-2 bg-red-900/50 hover:bg-red-800/80 text-red-200 rounded-lg text-[10px] font-bold transition border border-red-800 hover:border-red-500 flex justify-center items-center gap-1.5">
-                                    ⚠️ Mô phỏng Sự cố (Disaster Drill) ✨
+                                    ⚠️ Outage drill (disaster scenario) ✨
                                 </button>
                             </div>
                             
                             <div class="flex gap-2 relative mt-1">
-                                <input id="ai-chat-input" type="text" placeholder="Hỏi AI cấu hình bảo mật..." class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 transition" onkeypress="handleAIKeyPress(event)" />
+                                <input id="ai-chat-input" type="text" placeholder="Ask about security config..." class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 transition" onkeypress="handleAIKeyPress(event)" />
                                 <button onclick="sendUserMessage()" id="btn-ai-send" class="bg-slate-800 hover:bg-indigo-600 border border-slate-700 text-white rounded-lg px-3 flex items-center justify-center transition">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
                                 </button>
@@ -209,7 +209,7 @@
                             <svg class="h-8 w-8 text-indigo-400 ai-loading mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
-                            <span class="text-xs font-bold text-indigo-300 animate-pulse">Gemini đang xử lý...</span>
+                            <span class="text-xs font-bold text-indigo-300 animate-pulse">Gemini is thinking...</span>
                         </div>
                     </div>
                 </div>
@@ -436,7 +436,7 @@
             'onprem-server': {
                 title: 'Data Center Servers (On-Prem)',
                 badge: 'Application Source',
-                desc: 'Hệ thống máy chủ ứng dụng nội bộ khởi tạo kết nối. Định tuyến mặc định (Default route) trỏ về Firewall nội bộ để kiểm duyệt trước khi ra biên.',
+                desc: 'Internal application servers that initiate connections. The default route points to the internal firewall for inspection before traffic leaves the edge.',
                 config: `! IP Configuration (Server-01)
 IP Address: 10.0.1.50/24
 Gateway: 10.0.1.1 (Firewall Inside Interface)
@@ -448,7 +448,7 @@ Reply from 10.100.1.10: bytes=32 time=12ms TTL=62`
             'onprem-fw': {
                 title: 'Enterprise Edge Firewall',
                 badge: 'L7 Security / IPS',
-                desc: 'Thiết bị tường lửa (VD: Palo Alto, Fortinet) nằm giữa mạng nội bộ và CE Router. Đảm nhiệm việc lọc Gói tin, chống xâm nhập (IPS) trước khi dữ liệu đẩy qua đường truyền AWS Direct Connect.',
+                desc: 'Enterprise firewall (e.g. Palo Alto, Fortinet) between the internal network and the CE router. Filters packets and runs IPS before traffic enters the AWS Direct Connect path.',
                 config: `! Firewall Security Policy
 # Allow Traffic to AWS Transit Gateway VPCs
 config firewall policy
@@ -467,7 +467,7 @@ end`
             'ce-router': {
                 title: 'Customer Edge (CE) Router',
                 badge: 'BGP / MACsec / BFD',
-                desc: 'Router định tuyến BGP. Cấu hình chuyên sâu kết hợp BFD (phát hiện rớt mạng trong 300ms) và MACsec (Mã hóa Lớp 2) đảm bảo dữ liệu chạy trên dây cáp quang không bị sniff (đọc trộm).',
+                desc: 'BGP edge router. Advanced config combines BFD (sub-300ms failure detection) and MACsec (Layer-2 encryption) so traffic on the fiber link cannot be sniffed.',
                 config: `! Advanced BGP + BFD + MACsec Configuration
 interface TenGigabitEthernet0/0/0
  macsec network-link
@@ -482,7 +482,7 @@ interface TenGigabitEthernet0/0/0.100
 router bgp 65000
  neighbor 169.254.10.1 remote-as 7224
  neighbor 169.254.10.1 fall-over bfd
- ! Sử dụng BGP Community để ưu tiên đường chính
+ ! Use BGP communities to prefer the primary path
  neighbor 169.254.10.1 route-map PREFER_AWS out
 !
 route-map PREFER_AWS permit 10
@@ -491,20 +491,20 @@ route-map PREFER_AWS permit 10
             'demarc': {
                 title: 'Partner Patch Panel (Demarcation)',
                 badge: 'Layer 1 Physical',
-                desc: 'Tủ đấu nối quang (Meet-Me Room) của ISP tại trạm Colocation. Điểm phân định trách nhiệm quản lý cáp quang giữa Khách hàng và AWS.',
+                desc: 'ISP fiber patch panel (Meet-Me Room) at the colocation facility. Physical demarcation of fiber responsibility between the customer and AWS.',
                 config: `[INFRASTRUCTURE STATUS]
 Equipment: Equinix Meet-Me Room Patch Panel
 Cable Type: Single-mode Fiber (SMF) 1310nm
 Optical Loss: 0.15 dB (Excellent)
 
-# Trách nhiệm: 
-Lớp vật lý thuần túy. KHÔNG có cấu hình IP hay logic.`
+# Responsibility:
+Pure physical layer. NO IP or logical configuration.`
             },
             'cross-connect': {
                 title: 'LOA-CFA Cross-Connect',
                 badge: 'Fiber Jumper',
-                desc: 'Sợi cáp chéo kết nối vật lý từ Tủ đối tác sang Tủ thiết bị của AWS dựa trên giấy phép LOA-CFA.',
-                config: `> Cấp phép kết nối (Letter of Authorization)
+                desc: 'Physical fiber jumper from the partner cage to the AWS cage, authorized by an LOA-CFA.',
+                config: `> Letter of Authorization (LOA-CFA)
 Facility: Equinix DC-4 Ashburn
 From: Customer Cage C3, Cab 2, Port 12
 To: AWS Cage DX-1, Cab 4, Port 05
@@ -514,14 +514,14 @@ To: AWS Cage DX-1, Cab 4, Port 05
             'pe-router': {
                 title: 'AWS Direct Connect Router (PE)',
                 badge: 'Provider Edge / Jumbo Frame',
-                desc: 'Router biên của AWS. Cổng Trunk nhận nhiều VLAN. Hỗ trợ Jumbo Frame (MTU 9001) trên Private/Transit VIF để tăng tốc độ truyền tải.',
+                desc: 'AWS provider-edge router. Trunk port carries multiple VLANs. Supports jumbo frames (MTU 9001) on Private/Transit VIFs for higher throughput.',
                 config: `! AWS Internal Router Logic
 interface TenGigabitEthernet1/1
  switchport mode trunk
  switchport trunk allowed vlan 100,200,300
- mtu 9216  // Hỗ trợ Jumbo Frame
+ mtu 9216  // Jumbo frame support
 
-! Phân luồng:
+! Traffic split:
 IF vlan == 100 -> Route to DXGW (Private Context)
 IF vlan == 200 -> Route to DXGW (Transit Context)
 IF vlan == 300 -> Route to AWS Internet Backbone`
@@ -529,22 +529,22 @@ IF vlan == 300 -> Route to AWS Internet Backbone`
             'aws-dx-endpoint': {
                 title: 'AWS Direct Connect (Service Endpoint)',
                 badge: 'AWS Internal Service',
-                desc: 'Điểm neo dịch vụ Direct Connect bên trong mạng lưới AWS. Điểm này nhận kết nối vật lý từ Router trạm Colocation và phân phối tín hiệu mạng (VIFs) vào hạ tầng Software-Defined Networking (SDN) của AWS.',
+                desc: 'Direct Connect service endpoint inside the AWS network. Terminates the physical link from the colo PE router and fans VIFs into AWS SDN.',
                 config: `[AWS DIRECT CONNECT LOGICAL ENDPOINT]
 Status: Available
 Connection ID: dxcon-fg38dh2
 Bandwidth: 10 Gbps
 MACsec: Enabled & Verified
 
-# Vai trò trong kiến trúc:
-- Nằm hoàn toàn trong vùng quản lý AWS Global.
-- Điểm đầu cuối thực thi đóng/mở gói (encap/decap).
-- Cung cấp cổng vào cho các dịch vụ (DXGW, TGW, Public S3).`
+# Role in the architecture:
+- Fully within AWS Global management plane.
+- Endpoint that performs encap/decap.
+- Entry point for services (DXGW, TGW, Public S3).`
             },
             'dxgw': {
                 title: 'AWS Direct Connect Gateway (DXGW)',
                 badge: 'Global Logical Hub',
-                desc: 'Thành phần trung chuyển toàn cầu của AWS. Nhận tuyến từ CE Router và quảng bá ngược lại vào Transit Gateway.',
+                desc: 'AWS global transit component. Receives routes from the CE router and advertises them into Transit Gateway.',
                 config: `{
   "Type": "AWS::DirectConnect::DirectConnectGateway",
   "Properties": {
@@ -552,38 +552,38 @@ MACsec: Enabled & Verified
     "AmazonSideAsn": 64512
   }
 }
-# BGP Prefix Advertisement (Từ AWS về On-Prem):
-DXGW tự động gom các dải 10.100.x.x từ TGW để quảng bá về Customer Router với ASN 64512.`
+# BGP prefix advertisement (AWS → on-prem):
+DXGW aggregates 10.100.x.x prefixes from TGW and advertises them to the customer router with ASN 64512.`
             },
             'tgw-route-table': {
                 title: 'Transit Gateway Route Table',
                 badge: 'Central Routing Logic',
-                desc: 'Bảng định tuyến cốt lõi bên trong TGW. Quyết định gói tin từ DXGW sẽ được đẩy vào VPC Attachment nào (Prod, Stg hay Dev).',
+                desc: 'Core route table inside TGW. Decides which VPC attachment (Prod, Stg, or Dev) receives packets from DXGW.',
                 config: `! TGW Route Table (rtb-0934ab)
-# Định tuyến đến AWS VPCs:
+# Routes to AWS VPCs:
 10.100.0.0/16  ->  vpc-attach-prod  (Active)
 10.101.0.0/16  ->  vpc-attach-stg   (Active)
 10.102.0.0/16  ->  vpc-attach-dev   (Active)
 
-# Định tuyến về On-Prem (Texas):
+# Routes back to on-prem (Texas):
 10.0.0.0/8     ->  dxgw-attach-01   (Active)`
             },
             'tgw-vpc': {
                 title: 'AWS Transit Gateway (TGW)',
                 badge: 'Hub-and-Spoke Router',
-                desc: 'Bùng binh mạng khổng lồ. Kết nối hàng ngàn VPC và On-premise thông qua DXGW/VPN. Đơn giản hóa kiến trúc Peering chằng chịt.',
+                desc: 'Central network hub. Connects thousands of VPCs and on-premises sites via DXGW/VPN, replacing a mesh of peering links.',
                 config: `[TGW Attachments Overview]
 1. DXGW Attachment: tgw-attach-dx1 (Status: Available)
 2. VPC-Prod Attachment: tgw-attach-prod (Status: Available)
 3. VPC-Stg Attachment: tgw-attach-stg (Status: Available)
 4. VPC-Dev Attachment: tgw-attach-dev (Status: Available)
 
-! TGW giới hạn băng thông 50Gbps cho mỗi VPC Attachment.`
+! TGW limits bandwidth to 50 Gbps per VPC attachment.`
             },
             'vpc-prod': {
                 title: 'VPC Production (TGW Spoke)',
                 badge: 'Production Environment',
-                desc: 'VPC chứa các hệ thống Core đang hoạt động của ngân hàng. Đòi hỏi độ trễ thấp và bảo mật tối đa qua DX.',
+                desc: 'VPC hosting core production systems. Requires low latency and maximum security over DX.',
                 config: `! VPC Prod Route Table
 Destination      Target
 10.100.0.0/16    local
@@ -593,41 +593,41 @@ Destination      Target
             'vpc-stg': {
                 title: 'VPC Staging (TGW Spoke)',
                 badge: 'Pre-Production',
-                desc: 'VPC môi trường kiểm thử (Staging). Được định tuyến tách biệt nhưng vẫn đi qua TGW Hub chung.',
+                desc: 'Staging VPC. Routed separately but still attached to the shared TGW hub.',
                 config: `! VPC Stg Route Table
 Destination      Target
 10.101.0.0/16    local
 10.0.0.0/8       tgw-attach-stg  (Route to On-Prem via TGW)
 
-# Security Group: Chỉ cho phép SSH/RDP từ dải IP VPN/On-Prem cụ thể.`
+# Security Group: allow SSH/RDP only from specific VPN/on-prem IP ranges.`
             },
             'vpc-dev': {
                 title: 'VPC Development (TGW Spoke)',
                 badge: 'Dev Environment',
-                desc: 'Môi trường cho lập trình viên. Thường có Security Group chặn truy cập chéo sang VPC Prod dù cùng gắn vào TGW.',
+                desc: 'Developer environment. Typically uses security groups that block lateral access to Prod VPC even when both attach to TGW.',
                 config: `! VPC Dev Network ACLs (NACL)
 Inbound Rules:
 Rule 100: ALLOW ALL from 10.0.0.0/8 (On-Prem)
-Rule 200: DENY ALL from 10.100.0.0/16 (Chặn Prod VPC)
+Rule 200: DENY ALL from 10.100.0.0/16 (block Prod VPC)
 Rule 300: ALLOW ALL from 0.0.0.0/0`
             },
             'vpc-private': {
                 title: 'Isolated VPC (VGW Attach)',
                 badge: 'Legacy Single VPC',
-                desc: 'VPC gắn trực tiếp VGW thay vì dùng TGW. Thường dùng cho kiến trúc cũ hoặc hệ thống cần tách biệt 100% khỏi TGW Hub.',
-                config: `! Bảng định tuyến VPC (VGW)
+                desc: 'VPC attached directly to a VGW instead of TGW. Common for legacy designs or systems that must stay fully isolated from the TGW hub.',
+                config: `! VPC route table (VGW)
 Destination: 10.1.0.0/16   Target: local
-Destination: 10.0.0.0/8    Target: vgw-123 (Từ DXGW)`
+Destination: 10.0.0.0/8    Target: vgw-123 (from DXGW)`
             },
             'public-zone': {
                 title: 'AWS Public Zone (S3, DynamoDB)',
                 badge: 'Public Endpoint Routing',
-                desc: 'Nhận tuyến trực tiếp IP Public qua Public VIF, không đi qua DXGW. Backup dữ liệu S3 tốc độ cao.',
+                desc: 'Receives public IP prefixes directly over a Public VIF, bypassing DXGW. High-speed S3 backups.',
                 config: `! CE Router BGP Table (Public AWS Prefixes):
 Network          Next Hop            Path
 *> 52.216.0.0/15  169.254.30.1(AWS)  7224 i
 *> 54.231.0.0/16  169.254.30.1(AWS)  7224 i
-! BGP Prefix filtering: Chỉ permit chiều IN, chặn quảng bá default route (0.0.0.0/0) chiều OUT.`
+! BGP prefix filtering: permit inbound only; block advertising default route (0.0.0.0/0) outbound.`
             }
         };
 
@@ -693,7 +693,7 @@ Network          Next Hop            Path
 
             document.getElementById('ai-chat-history').innerHTML = `
                 <div class="bg-indigo-900/30 border border-indigo-500/30 rounded-lg p-3 text-indigo-200">
-                    Xin chào! Tôi là Trợ lý Mạng AI (Gemini). Hãy chọn một tính năng bên dưới để tôi hỗ trợ bạn thao tác với <b id="ai-context-node-name" class="text-indigo-400">${data.title}</b>.
+                    Hi! I'm your Network AI assistant (Gemini). Pick an action below to work with <b id="ai-context-node-name" class="text-indigo-400">${data.title}</b>.
                 </div>
             `;
             document.getElementById('ai-error').classList.add('hidden');
@@ -850,7 +850,7 @@ Network          Next Hop            Path
             const payload = {
                 contents: [{ parts: [{ text: promptText }] }],
                 systemInstruction: { 
-                    parts: [{ text: "Bạn là một chuyên gia Kiến trúc sư Mạng cấp cao của AWS (Senior Network Architect) và kỹ sư DevOps (Infrastructure as Code). Hãy trả lời ngắn gọn, trực diện, có format markdown đẹp (sử dụng in đậm, in nghiêng, code block) bằng tiếng Việt. Tập trung phân tích rủi ro hạ tầng (Single point of failure), định tuyến BGP, bảo mật và Best Practice liên quan đến AWS Direct Connect & Transit Gateway." }] 
+                    parts: [{ text: "You are a senior AWS network architect and DevOps/IaC engineer. Reply concisely in English with clean markdown (bold, italics, code blocks). Focus on infrastructure risk (single points of failure), BGP routing, security, and best practices for AWS Direct Connect and Transit Gateway." }] 
                 }
             };
             
@@ -860,13 +860,13 @@ Network          Next Hop            Path
                 body: JSON.stringify(payload)
             });
             
-            return result.candidates?.[0]?.content?.parts?.[0]?.text || "Xin lỗi, hiện tại tôi không thể đưa ra phản hồi. Vui lòng thử lại.";
+            return result.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I could not generate a response. Please try again.";
         }
 
         function parseMarkdown(text) {
             let html = text;
             
-            // Handle Code Blocks an toàn bằng mã Hex (\x60) để tránh cắt file
+            // Safely handle code blocks using hex escapes (\x60)
             html = html.replace(/\x60\x60\x60(?:\w+)?\n([\s\S]*?)\x60\x60\x60/g, '<pre><code>$1</code></pre>');
             html = html.replace(/\x60(.*?)\x60/g, '<code>$1</code>');
             
@@ -927,9 +927,9 @@ Network          Next Hop            Path
             const data = nodeDB[currentNodeId];
             
             document.getElementById('ai-error').classList.add('hidden');
-            const prompt = `Thực hiện đánh giá kiến trúc (Architectural Review) đối với thiết bị/thành phần: "${data.title}" trong mô hình On-Prem to AWS Direct Connect.\n1. Nêu 1 rủi ro tiềm ẩn lớn nhất.\n2. Đề xuất Best Practice chuẩn AWS để khắc phục.`;
+            const prompt = `Perform an architectural review of component: "${data.title}" in an on-prem to AWS Direct Connect design.\n1. Call out the single biggest risk.\n2. Recommend an AWS best practice to mitigate it.`;
             
-            appendMessage('user', `<i>🔍 Phân tích rủi ro & giải pháp cho ${data.title}...</i>`);
+            appendMessage('user', `<i>🔍 Risk analysis & recommendations for ${data.title}...</i>`);
             setAILoading(true);
             
             try {
@@ -948,9 +948,9 @@ Network          Next Hop            Path
             const data = nodeDB[currentNodeId];
             
             document.getElementById('ai-error').classList.add('hidden');
-            const prompt = `Viết mã Infrastructure as Code (Terraform hoặc AWS CloudFormation. Nếu là thiết bị On-Premise thì viết cấu hình Cisco IOS) để triển khai thực tế thiết bị/thành phần: "${data.title}" trong kiến trúc AWS Direct Connect. Yêu cầu:\n- Cung cấp mã nguồn chuẩn xác trong khối markdown code.\n- Viết comment bằng tiếng Việt giải thích chức năng của từng block code.\n- Ngắn gọn, tập trung vào code, không giải thích dài dòng ngoài lề.`;
+            const prompt = `Write Infrastructure as Code (Terraform or AWS CloudFormation; use Cisco IOS config for on-prem devices) to deploy component: "${data.title}" in an AWS Direct Connect architecture. Requirements:\n- Provide accurate source in markdown code blocks.\n- Add English comments explaining each block.\n- Keep it concise and code-focused.`;
             
-            appendMessage('user', `<i>💻 Viết mã nguồn triển khai tự động (IaC) cho ${data.title}...</i>`);
+            appendMessage('user', `<i>💻 Generate IaC for ${data.title}...</i>`);
             setAILoading(true);
             
             try {
@@ -969,9 +969,9 @@ Network          Next Hop            Path
             const data = nodeDB[currentNodeId];
             
             document.getElementById('ai-error').classList.add('hidden');
-            const prompt = `Hãy tạo một kịch bản sự cố sập mạng nghiêm trọng (Critical Network Outage Scenario) cực kỳ thực tế xảy ra đối với thành phần: "${data.title}" trong môi trường AWS Direct Connect (Ví dụ: Lỗi MACsec, BGP Flapping, Asymmetric Routing, MTU mismatch, đứt cáp...). Yêu cầu:\n1. **🚨 Mô tả sự cố:** Sự cố gì vừa xảy ra?\n2. **📊 Triệu chứng (Symptoms):** Các kỹ sư trực NOC sẽ nhìn thấy cảnh báo (alert) hoặc log gì trên màn hình giám sát?\n3. **🛠️ Hướng dẫn Khắc phục (Troubleshooting):** Các bước để khoanh vùng và xử lý dứt điểm.`;
+            const prompt = `Create a realistic critical network outage scenario for component: "${data.title}" in an AWS Direct Connect environment (e.g. MACsec failure, BGP flapping, asymmetric routing, MTU mismatch, fiber cut). Requirements:\n1. **🚨 Incident:** What just happened?\n2. **📊 Symptoms:** What alerts or logs would NOC engineers see?\n3. **🛠️ Troubleshooting:** Steps to isolate and fully resolve the issue.`;
             
-            appendMessage('user', `<i>⚠️ Mô phỏng kịch bản sự cố sập mạng đối với ${data.title}...</i>`);
+            appendMessage('user', `<i>⚠️ Outage drill for ${data.title}...</i>`);
             setAILoading(true);
             
             try {
@@ -997,7 +997,7 @@ Network          Next Hop            Path
             appendMessage('user', text);
             setAILoading(true);
             
-            const contextPrompt = `Ngữ cảnh: Đang thao tác với thiết bị "${data.title}" trong môi trường AWS Direct Connect.\nNgười dùng hỏi: "${text}".\nHãy trả lời chuyên sâu, chuyên nghiệp.`;
+            const contextPrompt = `Context: Working with device "${data.title}" in an AWS Direct Connect environment.\nUser question: "${text}".\nReply in depth and professionally.`;
             
             try {
                 const response = await callGeminiAPI(contextPrompt);

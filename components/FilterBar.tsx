@@ -50,7 +50,7 @@ export function FilterBar({
           type="text"
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          placeholder="Tìm theo tên, mô tả, tag..."
+          placeholder="Search by name, description, or tag..."
           className="w-full rounded-full border border-white/10 bg-white/[0.04] py-2 pl-10 pr-3 text-sm text-white placeholder:text-slate-500 transition focus:border-sky-500/60 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
         />
       </div>
@@ -61,7 +61,7 @@ export function FilterBar({
           onChange={(e) => onCloudChange(e.target.value as Cloud | "all")}
           className={selectClasses}
         >
-          <option value="all">Tất cả Cloud</option>
+          <option value="all">All clouds</option>
           {options.clouds.map((c) => (
             <option key={c} value={c}>
               {CLOUD_LABELS[c]}
@@ -74,7 +74,7 @@ export function FilterBar({
           onChange={(e) => onDomainChange(e.target.value as Domain | "all")}
           className={selectClasses}
         >
-          <option value="all">Tất cả Domain</option>
+          <option value="all">All domains</option>
           {options.domains.map((d) => (
             <option key={d} value={d}>
               {DOMAIN_LABELS[d]}
@@ -87,7 +87,7 @@ export function FilterBar({
           onChange={(e) => onDifficultyChange(e.target.value as Difficulty | "all")}
           className={selectClasses}
         >
-          <option value="all">Tất cả độ khó</option>
+          <option value="all">All levels</option>
           {options.difficulties.map((d) => (
             <option key={d} value={d}>
               {DIFFICULTY_LABELS[d]}
@@ -96,7 +96,9 @@ export function FilterBar({
         </select>
       </div>
 
-      <span className="shrink-0 text-xs text-slate-500">{resultCount} kết quả</span>
+      <span className="shrink-0 text-xs text-slate-500">
+        {resultCount} {resultCount === 1 ? "result" : "results"}
+      </span>
     </div>
   );
 }

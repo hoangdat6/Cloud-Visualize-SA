@@ -19,7 +19,7 @@ export interface FilterOptions {
   difficulties: Difficulty[];
 }
 
-/** Trả về các giá trị filter khả dụng dựa trên dữ liệu thực tế (tự đồng bộ khi thêm mô phỏng). */
+/** Filter values present in the catalog (stays in sync as simulations are added). */
 export function getFilterOptions(): FilterOptions {
   return {
     clouds: unique(simulations.map((s) => s.cloud)),

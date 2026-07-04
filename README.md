@@ -1,49 +1,45 @@
 # CloudViz SA
 
-Thư viện web tĩnh trưng bày các mô phỏng tương tác kiến trúc cloud (AWS / Azure / GCP) dành
-cho Solution Architect — tìm, xem và học hiểu từng thành phần bên trong một kiến trúc.
+A static web library of interactive cloud architecture simulations (AWS / Azure / GCP) for
+Solution Architects — browse, open, and learn each component inside a design.
 
-Mỗi mô phỏng là một file HTML tự chứa (giữ nguyên như tác giả viết); nền tảng chỉ đóng vai trò
-thư viện + trình hiển thị (gallery có tìm kiếm/lọc + trang xem nhúng `<iframe>`).
+Each simulation is a self-contained HTML file (kept as authored); the platform is only a
+gallery + viewer (search/filter + embedded `<iframe>` player).
 
-Xem tài liệu thiết kế đầy đủ tại [`docs/`](./docs/README.md).
+Full design docs live in [`docs/`](./docs/README.md).
 
-## Chạy dự án
+## Run locally
 
 ```bash
 npm install
 npm run dev       # http://localhost:3000
 ```
 
-Build & chạy bản production:
+Production build:
 
 ```bash
 npm run build
 npm run start
 ```
 
-## Cấu trúc chính
+## Layout
 
 ```
-app/                   # Trang: gallery (/) và player (/s/[slug])
-components/            # SimulationCard, FilterBar, GalleryClient, SimulationFrame
-lib/                   # types.ts, catalog.ts (lớp truy vấn), badges.ts
-data/simulations.ts    # MANIFEST — nguồn sự thật của danh mục mô phỏng
-public/simulations/    # Các file HTML mô phỏng
-public/thumbs/         # Ảnh thumbnail (tuỳ chọn)
-docs/                  # Tài liệu thiết kế chi tiết
+app/                   # Pages: gallery (/) and player (/s/[slug], /s/[slug]/play)
+components/            # UI components (cards, filters, player, hero)
+lib/                   # types, catalog, badges, site config
+data/simulations.ts    # MANIFEST — single source of truth for the catalog
+public/simulations/    # Simulation HTML files
+public/thumbs/         # Optional thumbnails
+docs/                  # Design documentation
+scripts/               # Build-time manifest validation
 ```
 
-## Thêm một mô phỏng mới
+## Add a simulation
 
-1. Copy file HTML vào `public/simulations/`.
-2. (Tuỳ chọn) thêm thumbnail vào `public/thumbs/`.
-3. Thêm một object vào `data/simulations.ts`.
-4. Commit & push — không cần sửa code gallery/player.
+1. Copy the HTML file into `public/simulations/`.
+2. (Optional) add a thumbnail under `public/thumbs/`.
+3. Register an entry in `data/simulations.ts`.
+4. Run `npm run validate` (also runs automatically before `npm run build`).
 
-Chi tiết đầy đủ + checklist: [`docs/06-quy-trinh-them-mo-phong.md`](./docs/06-quy-trinh-them-mo-phong.md).
-
-## Triển khai
-
-Site tĩnh hoàn toàn (không backend, không biến môi trường), triển khai trực tiếp lên Vercel
-bằng cách import repo — không cần cấu hình thêm.
+See [`docs/06-quy-trinh-them-mo-phong.md`](./docs/06-quy-trinh-them-mo-phong.md) for the full checklist.

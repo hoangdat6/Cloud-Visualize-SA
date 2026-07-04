@@ -5,7 +5,7 @@ import { simulations } from "../data/simulations";
 const PUBLIC_DIR = path.join(process.cwd(), "public");
 
 function fail(messages: string[]): never {
-  console.error("\n❌ Manifest không hợp lệ:\n");
+  console.error("\n❌ Invalid manifest:\n");
   for (const message of messages) {
     console.error(`  - ${message}`);
   }
@@ -19,19 +19,19 @@ function main() {
 
   for (const sim of simulations) {
     if (seenSlugs.has(sim.slug)) {
-      errors.push(`Slug bị trùng: "${sim.slug}"`);
+      errors.push(`Duplicate slug: "${sim.slug}"`);
     }
     seenSlugs.add(sim.slug);
 
     const htmlFile = path.join(PUBLIC_DIR, sim.htmlPath.replace(/^\//, ""));
     if (!existsSync(htmlFile)) {
-      errors.push(`[${sim.slug}] htmlPath không tồn tại: ${sim.htmlPath}`);
+      errors.push(`[${sim.slug}] htmlPath not found: ${sim.htmlPath}`);
     }
 
     if (sim.thumbnail) {
       const thumbFile = path.join(PUBLIC_DIR, sim.thumbnail.replace(/^\//, ""));
       if (!existsSync(thumbFile)) {
-        errors.push(`[${sim.slug}] thumbnail không tồn tại: ${sim.thumbnail}`);
+        errors.push(`[${sim.slug}] thumbnail not found: ${sim.thumbnail}`);
       }
     }
   }
@@ -40,7 +40,7 @@ function main() {
     fail(errors);
   }
 
-  console.log(`✅ Manifest hợp lệ: ${simulations.length} mô phỏng.`);
+  console.log(`✅ Manifest valid: ${simulations.length} simulation(s).`);
 }
 
 main();

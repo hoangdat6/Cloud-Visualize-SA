@@ -38,12 +38,11 @@ export default function HomePage() {
             href="#gallery"
             className="hidden text-xs font-medium text-slate-400 transition hover:text-white sm:inline"
           >
-            Thư viện mô phỏng
+            Simulation library
           </a>
         </div>
       </header>
 
-      {/* Hero — 2 cột: copy trái, panel mô phỏng phải */}
       <section className="px-6 pb-12 pt-10 sm:pt-14 lg:pb-20 lg:pt-16">
         <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-12">
           <div className="flex flex-col items-start gap-6">
@@ -53,16 +52,16 @@ export default function HomePage() {
             </span>
 
             <h1 className="text-4xl font-bold leading-[1.15] text-white sm:text-5xl">
-              Tìm, xem và học hiểu{" "}
+              Explore and learn{" "}
               <span className="bg-gradient-to-r from-sky-400 via-cyan-300 to-purple-400 bg-clip-text text-transparent">
-                kiến trúc Cloud
+                cloud architecture
               </span>{" "}
-              qua mô phỏng tương tác
+              through interactive simulations
             </h1>
 
             <p className="max-w-lg text-sm leading-relaxed text-slate-400 sm:text-base">
-              Thư viện các mô phỏng trực quan giúp Solution Architect nắm rõ từng thành phần, luồng
-              dữ liệu và cấu hình bên trong các kiến trúc AWS, Azure, GCP.
+              A library of visual simulations that help Solution Architects understand components,
+              data flows, and configuration inside AWS, Azure, and GCP architectures.
             </p>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -70,7 +69,7 @@ export default function HomePage() {
                 href="#gallery"
                 className="flex w-fit items-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-blue-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-sky-500/25 transition hover:shadow-xl hover:shadow-sky-500/30"
               >
-                Khám phá thư viện ↓
+                Browse library ↓
               </a>
               {featured && (
                 <Link
@@ -80,7 +79,7 @@ export default function HomePage() {
                   <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z" />
                   </svg>
-                  Chạy demo
+                  Run demo
                 </Link>
               )}
             </div>
@@ -88,7 +87,9 @@ export default function HomePage() {
             <div className="flex flex-wrap items-center gap-4 pt-1">
               <div className="flex items-baseline gap-1.5">
                 <span className="text-2xl font-bold text-white">{total}</span>
-                <span className="text-xs text-slate-500">mô phỏng</span>
+                <span className="text-xs text-slate-500">
+                  {total === 1 ? "simulation" : "simulations"}
+                </span>
               </div>
               <span className="h-4 w-px bg-white/10" />
               {stats.map(({ cloud, count }) => (
@@ -107,18 +108,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Gallery */}
-      <main id="gallery" className="mx-auto w-full max-w-6xl flex-1 pb-16">
+      <main id="gallery" className="mx-auto w-full max-w-6xl flex-1 px-6 pb-16">
         <div className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-lg font-bold text-white">Thư viện mô phỏng</h2>
+            <h2 className="text-lg font-bold text-white">Simulation library</h2>
             <p className="mt-0.5 text-xs text-slate-500">
-              Lọc theo cloud, domain hoặc độ khó — mở từng mô phỏng để khám phá.
+              Filter by cloud, domain, or difficulty — open any simulation to explore.
             </p>
           </div>
         </div>
 
-        <Suspense fallback={<div className="py-20 text-center text-sm text-slate-500">Đang tải...</div>}>
+        <Suspense fallback={<div className="py-20 text-center text-sm text-slate-500">Loading...</div>}>
           <GalleryClient simulations={simulations} filterOptions={filterOptions} />
         </Suspense>
       </main>

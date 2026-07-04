@@ -1,21 +1,23 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 import { SITE } from "@/lib/site";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const plexSans = IBM_Plex_Sans({
+  variable: "--font-plex-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
-  title: `${SITE.name} — Thư viện mô phỏng kiến trúc Cloud`,
+  title: `${SITE.name} — Cloud architecture simulations`,
   description: SITE.description,
   openGraph: {
     title: SITE.name,
@@ -38,11 +40,11 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="vi"
-      className={`${geistSans.variable} ${geistMono.variable} h-full bg-slate-950 text-slate-100 antialiased`}
+      lang="en"
+      className={`${plexSans.variable} ${plexMono.variable} h-full bg-slate-950 text-slate-100 antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-slate-950" suppressHydrationWarning>
+      <body className="min-h-full flex flex-col bg-slate-950 font-sans" suppressHydrationWarning>
         {children}
       </body>
     </html>
