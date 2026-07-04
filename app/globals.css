@@ -17,6 +17,10 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -27,8 +31,37 @@ body {
   background-size: 40px 40px;
   background-image: linear-gradient(
       to right,
-      rgba(30, 41, 59, 0.25) 1px,
+      rgba(30, 41, 59, 0.16) 1px,
       transparent 1px
     ),
-    linear-gradient(to bottom, rgba(30, 41, 59, 0.25) 1px, transparent 1px);
+    linear-gradient(to bottom, rgba(30, 41, 59, 0.16) 1px, transparent 1px);
+}
+
+/**
+ * Nền "aurora" — các quầng màu mờ, nhoè, phủ liên tục phía sau nội dung.
+ * Dùng để nối liền các section thay vì border/bg-block cứng.
+ */
+.bg-aurora {
+  position: relative;
+  isolation: isolate;
+}
+
+.bg-aurora::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(48rem 28rem at 12% 0%, rgba(56, 189, 248, 0.16), transparent 60%),
+    radial-gradient(42rem 26rem at 100% 8%, rgba(168, 85, 247, 0.13), transparent 55%),
+    radial-gradient(38rem 30rem at 45% 100%, rgba(16, 185, 129, 0.07), transparent 60%);
+  pointer-events: none;
+}
+
+/** Thẻ kính mờ dùng chung cho card/section — thay cho border-slate-800 cứng. */
+.glass-card {
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
 }

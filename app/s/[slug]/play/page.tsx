@@ -34,11 +34,11 @@ export default async function PlayPage({ params }: PlayPageProps) {
 
   return (
     <div className="flex h-screen flex-col bg-slate-950">
-      <header className="flex shrink-0 items-center justify-between gap-4 border-b border-slate-800 bg-slate-900/90 px-4 py-3 backdrop-blur-md">
+      <header className="flex shrink-0 items-center justify-between gap-4 bg-slate-950/70 px-4 py-3 shadow-lg shadow-black/20 backdrop-blur-xl">
         <div className="flex min-w-0 items-center gap-3">
           <Link
             href={`/s/${simulation.slug}`}
-            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition hover:border-slate-500 hover:text-white"
+            className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-white/20 hover:text-white"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -49,12 +49,12 @@ export default async function PlayPage({ params }: PlayPageProps) {
             <h1 className="truncate text-sm font-bold text-white">{simulation.title}</h1>
             <div className="mt-0.5 flex gap-1.5">
               <span
-                className={`rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${CLOUD_BADGE_CLASSES[simulation.cloud]}`}
+                className={`rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${CLOUD_BADGE_CLASSES[simulation.cloud]}`}
               >
                 {CLOUD_LABELS[simulation.cloud]}
               </span>
               <span
-                className={`rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${DIFFICULTY_BADGE_CLASSES[simulation.difficulty]}`}
+                className={`rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${DIFFICULTY_BADGE_CLASSES[simulation.difficulty]}`}
               >
                 {DIFFICULTY_LABELS[simulation.difficulty]}
               </span>
@@ -66,7 +66,7 @@ export default async function PlayPage({ params }: PlayPageProps) {
           href={simulation.htmlPath}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition hover:border-sky-500 hover:text-sky-300"
+          className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-sky-500/50 hover:text-sky-300"
         >
           Mở tab mới
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

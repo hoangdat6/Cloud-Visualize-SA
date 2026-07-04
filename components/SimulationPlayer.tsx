@@ -43,7 +43,7 @@ export function SimulationPlayer({ slug, htmlPath, title }: SimulationPlayerProp
         type="button"
         onClick={toggleFullscreen}
         aria-label={isFullscreen ? "Thoát toàn màn hình" : "Xem toàn màn hình"}
-        className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-900/80 text-slate-300 backdrop-blur-sm transition hover:border-sky-500 hover:text-sky-300"
+        className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-slate-900/70 text-slate-300 backdrop-blur-md transition hover:border-sky-500/50 hover:text-sky-300"
       >
         {isFullscreen ? (
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

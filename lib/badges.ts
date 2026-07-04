@@ -14,6 +14,13 @@ export const CLOUD_CARD_ACCENT: Record<Cloud, string> = {
   multi: "from-purple-500/20 to-slate-900",
 };
 
+export const CLOUD_DOT_CLASSES: Record<Cloud, string> = {
+  aws: "bg-orange-400",
+  azure: "bg-sky-400",
+  gcp: "bg-emerald-400",
+  multi: "bg-purple-400",
+};
+
 export const DIFFICULTY_BADGE_CLASSES: Record<Difficulty, string> = {
   beginner: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
   intermediate: "bg-amber-500/15 text-amber-300 border-amber-500/30",

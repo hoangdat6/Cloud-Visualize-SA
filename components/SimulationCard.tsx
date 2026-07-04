@@ -13,7 +13,7 @@ export function SimulationCard({ simulation }: { simulation: Simulation }) {
   return (
     <Link
       href={`/s/${simulation.slug}`}
-      className="group flex flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-900/60 shadow-lg transition hover:-translate-y-0.5 hover:border-slate-600 hover:shadow-xl"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-white/5 bg-white/[0.03] shadow-lg shadow-black/20 backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:border-sky-500/30 hover:shadow-2xl hover:shadow-sky-500/10"
     >
       <div
         className={`relative flex h-32 items-center justify-center overflow-hidden bg-gradient-to-br ${CLOUD_CARD_ACCENT[simulation.cloud]}`}
@@ -41,12 +41,12 @@ export function SimulationCard({ simulation }: { simulation: Simulation }) {
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="flex flex-wrap items-center gap-1.5">
           <span
-            className={`rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${CLOUD_BADGE_CLASSES[simulation.cloud]}`}
+            className={`rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${CLOUD_BADGE_CLASSES[simulation.cloud]}`}
           >
             {CLOUD_LABELS[simulation.cloud]}
           </span>
           <span
-            className={`rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${DIFFICULTY_BADGE_CLASSES[simulation.difficulty]}`}
+            className={`rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${DIFFICULTY_BADGE_CLASSES[simulation.difficulty]}`}
           >
             {DIFFICULTY_LABELS[simulation.difficulty]}
           </span>
@@ -63,13 +63,13 @@ export function SimulationCard({ simulation }: { simulation: Simulation }) {
           {visibleTags.map((tag) => (
             <span
               key={tag}
-              className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] font-mono text-slate-400"
+              className="rounded-full bg-white/5 px-2 py-0.5 text-[9px] font-mono text-slate-400"
             >
               {tag}
             </span>
           ))}
           {extraTagCount > 0 && (
-            <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] font-mono text-slate-500">
+            <span className="rounded-full bg-white/5 px-2 py-0.5 text-[9px] font-mono text-slate-500">
               +{extraTagCount}
             </span>
           )}

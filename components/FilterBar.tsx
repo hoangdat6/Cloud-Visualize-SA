@@ -27,11 +27,14 @@ export function FilterBar({
   options,
   resultCount,
 }: FilterBarProps) {
+  const selectClasses =
+    "rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-2 text-xs font-medium text-slate-200 transition focus:border-sky-500/60 focus:outline-none focus:ring-2 focus:ring-sky-500/30";
+
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-4 shadow-lg sm:flex-row sm:items-center">
+    <div className="glass-card flex flex-col gap-3 p-4 shadow-xl shadow-black/10 sm:flex-row sm:items-center">
       <div className="relative flex-1">
         <svg
-          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+          className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -48,7 +51,7 @@ export function FilterBar({
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
           placeholder="Tìm theo tên, mô tả, tag..."
-          className="w-full rounded-lg border border-slate-700 bg-slate-950 py-2 pl-9 pr-3 text-sm text-white placeholder:text-slate-500 focus:border-sky-500 focus:outline-none"
+          className="w-full rounded-full border border-white/10 bg-white/[0.04] py-2 pl-10 pr-3 text-sm text-white placeholder:text-slate-500 transition focus:border-sky-500/60 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
         />
       </div>
 
@@ -56,7 +59,7 @@ export function FilterBar({
         <select
           value={cloud}
           onChange={(e) => onCloudChange(e.target.value as Cloud | "all")}
-          className="rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-2 text-xs font-medium text-slate-200 focus:border-sky-500 focus:outline-none"
+          className={selectClasses}
         >
           <option value="all">Tất cả Cloud</option>
           {options.clouds.map((c) => (
@@ -69,7 +72,7 @@ export function FilterBar({
         <select
           value={domain}
           onChange={(e) => onDomainChange(e.target.value as Domain | "all")}
-          className="rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-2 text-xs font-medium text-slate-200 focus:border-sky-500 focus:outline-none"
+          className={selectClasses}
         >
           <option value="all">Tất cả Domain</option>
           {options.domains.map((d) => (
@@ -82,7 +85,7 @@ export function FilterBar({
         <select
           value={difficulty}
           onChange={(e) => onDifficultyChange(e.target.value as Difficulty | "all")}
-          className="rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-2 text-xs font-medium text-slate-200 focus:border-sky-500 focus:outline-none"
+          className={selectClasses}
         >
           <option value="all">Tất cả độ khó</option>
           {options.difficulties.map((d) => (

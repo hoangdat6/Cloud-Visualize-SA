@@ -40,10 +40,10 @@ export function BookmarkButton({ slug, size = "sm" }: BookmarkButtonProps) {
         type="button"
         onClick={handleClick}
         aria-pressed={bookmarked}
-        className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
+        className={`flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold transition ${
           bookmarked
             ? "border-amber-400/60 bg-amber-400/20 text-amber-300"
-            : "border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500 hover:text-white"
+            : "border-white/10 bg-white/[0.04] text-slate-300 hover:border-white/20 hover:text-white"
         }`}
       >
         {icon}
@@ -61,7 +61,7 @@ export function BookmarkButton({ slug, size = "sm" }: BookmarkButtonProps) {
       className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border backdrop-blur-sm transition ${
         bookmarked
           ? "border-amber-400/60 bg-amber-400/20 text-amber-300"
-          : "border-slate-700 bg-slate-950/70 text-slate-400 hover:border-slate-500 hover:text-slate-200"
+          : "border-white/10 bg-slate-950/60 text-slate-400 hover:border-white/25 hover:text-slate-200"
       }`}
     >
       {icon}
