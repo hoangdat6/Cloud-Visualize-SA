@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tech Day 93: Weight & Backpropagation</title>
+    
+    <!-- Using Tailwind CSS for layout and utility classes -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts for handwriting style -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Pangolin is a good legible handwriting font -->
+    <link href="https://fonts.googleapis.com/css2?family=Pangolin&family=Klee+One:wght@400;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* CSS Variables for colors */
+        :root {
+            --bg-paper: #fdfaf3;
+            --grid-line: #efede7;
+            --grid-line-vertical: #f0ebe1;
+            
+            --text-main: #333333;
+            --text-blue: #3b5998;
+            --text-red: #d32f2f;
+            --text-green: #388e3c;
+            
+            --box-purple-bg: #f4f0ff;
+            --box-purple-border: #a89fcf;
+            --box-blue-bg: #f0f7fd;
+            --box-blue-border: #9fbce4;
+            --box-yellow-bg: #fffcf0;
+            --box-yellow-border: #e6d38e;
+            --box-green-bg: #f0fdf4;
+            --box-green-border: #a3e6b5;
+            
+            --hl-green: #e6f7eb;
+            --hl-green-border: #7ecb96;
+            --hl-yellow: #fff8d6;
+            --hl-yellow-border: #e6c86e;
+            --hl-red: #fdeaea;
+            --hl-red-border: #e68a8a;
+            --hl-blue: #e8f0fe;
+            --hl-blue-border: #8ab4f8;
+        }
+
+        /* 
+         * STREAMING_CHUNK:Setting up base typography and graph paper background 
+         */
+        body {
+            font-family: 'Pangolin', 'Klee One', cursive, sans-serif;
+            background-color: var(--bg-paper);
+            color: var(--text-main);
+            /* Creating the graph paper effect */
+            background-image: 
+                linear-gradient(var(--grid-line) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-line-vertical) 1px, transparent 1px);
+            background-size: 20px 20px; /* Size of the grid squares */
+            line-height: 1.5;
+            font-size: 16px;
+        }
+
+        /* 
+         * STREAMING_CHUNK:Utility classes for hand-drawn borders 
+         * Using border-radius to create slightly imperfect, organic shapes
+         */
+        .hand-drawn-border {
+            border: 2px solid var(--text-main);
+            border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
+        }
+        
+        .hand-drawn-border-alt {
+            border: 2px solid var(--text-main);
+            border-radius: 15px 225px 15px 255px/255px 15px 225px 15px;
+        }
+
+        .hand-drawn-border-soft {
+            border: 1.5px solid var(--text-main);
+            border-radius: 10px 15px 8px 12px/12px 8px 15px 10px;
+        }
+
+        /* 
+         * STREAMING_CHUNK:Styling the section headers (e.g., "1. WEIGHT LÀ GÌ?") 
+         */
+        .section-header {
+            display: inline-block;
+            background-color: var(--box-purple-bg);
+            border: 2px solid var(--box-purple-border);
+            border-radius: 8px 12px 6px 14px / 12px 8px 14px 6px;
+            padding: 4px 12px;
+            font-weight: bold;
+            color: #4a4a8a;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.05);
+        }
+
+        /* Number circles */
+        .num-circle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 1.5px solid var(--text-main);
+            font-size: 0.8rem;
+            margin-right: 6px;
+        }
+        .num-1 { background-color: #e0f2fe; }
+        .num-2 { background-color: #fef08a; }
+        .num-3 { background-color: #dcfce7; }
+
+        /* Formula styling */
+        .math-fraction {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            vertical-align: middle;
+            margin: 0 4px;
+        }
+        .math-fraction > span:first-child {
+            border-bottom: 2px solid var(--text-main);
+            padding: 0 4px;
+        }
+        .math-fraction > span:last-child {
+            padding: 0 4px;
+        }
+
+        /* Layout utilities */
+        .masonry-grid {
+            column-count: 1;
+            column-gap: 24px;
+        }
+        @media (min-width: 768px) {
+            .masonry-grid {
+                column-count: 2;
+            }
+        }
+        .masonry-item {
+            break-inside: avoid;
+            margin-bottom: 24px;
+        }
+        
+        /* Custom list style */
+        ul.dash-list {
+            list-style-type: none;
+            padding-left: 1rem;
+        }
+        ul.dash-list li {
+            position: relative;
+            margin-bottom: 0.5rem;
+        }
+        ul.dash-list li::before {
+            content: "•";
+            position: absolute;
+            left: -1rem;
+            font-size: 1.2rem;
+            line-height: 1;
+        }
+
+        /* Node blocks for diagrams */
+        .node-block {
+            padding: 8px 12px;
+            border: 2px solid var(--text-main);
+            border-radius: 8px 10px 6px 12px / 10px 8px 12px 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: white;
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.05);
+            min-width: 60px;
+        }
+        .node-circle {
+            width: 36px;
+            height: 36px;
+            border: 2px solid var(--text-main);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: white;
+            font-weight: bold;
+        }
+
+        /* Arrows */
+        .arrow-right {
+            position: relative;
+            display: inline-block;
+            width: 30px;
+            height: 2px;
+            background-color: var(--text-main);
+            margin: 0 10px;
+        }
+        .arrow-right::after {
+            content: '';
+            position: absolute;
+            right: -2px;
+            top: -4px;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            border-left: 8px solid var(--text-main);
+        }
+        
+        .arrow-left {
+            position: relative;
+            display: inline-block;
+            width: 30px;
+            height: 2px;
+            background-color: var(--text-main);
+            margin: 0 10px;
+        }
+        .arrow-left::before {
+            content: '';
+            position: absolute;
+            left: -2px;
+            top: -4px;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            border-right: 8px solid var(--text-main);
+        }
+
+        .arrow-down {
+            position: relative;
+            display: inline-block;
+            height: 20px;
+            width: 2px;
+            background-color: var(--text-main);
+            margin: 4px 0;
+        }
+        .arrow-down::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: -4px;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 8px solid var(--text-main);
+        }
+        
+        /* Highlight borders matching image sections */
+        .border-box-1 { border-color: var(--box-purple-border); }
+        .border-box-2 { border-color: var(--box-blue-border); }
+        .border-box-3 { border-color: var(--box-green-border); }
+        .border-box-4 { border-color: var(--box-purple-border); }
+        .border-box-5 { border-color: var(--box-blue-border); }
+        .border-box-6 { border-color: var(--box-green-border); }
+
+        /* Icon containers */
+        .icon-container {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto">
+        
+        <!-- 
+         * STREAMING_CHUNK:Header Section 
+         -->
+        <header class="flex flex-col md:flex-row items-center md:items-start mb-8 pb-4 border-b-2 border-dashed border-gray-300 relative">
+            <!-- Notebook Icon -->
+            <div class="hand-drawn-border bg-white p-2 flex flex-col items-center justify-center mr-0 md:mr-6 mb-4 md:mb-0 w-20 h-24 rotate-[-3deg] shadow-sm">
+                <div class="w-full border-b-2 border-gray-400 mb-1"></div>
+                <div class="w-full border-b-2 border-gray-400 mb-1"></div>
+                <div class="font-bold text-lg leading-tight text-center mt-2 text-blue-800">TỰ<br>HỌC</div>
+            </div>
+            
+            <div class="flex-1 text-center md:text-left">
+                <h1 class="text-3xl md:text-4xl font-bold mb-2">Tech Day 93: Weight & Backpropagation</h1>
+                <p class="text-xl text-gray-700">trọng số và cách model tự sửa lỗi - lan truyền ngược</p>
+            </div>
+            
+            <!-- Star decoration -->
+            <div class="absolute right-0 top-0 text-yellow-400 text-3xl hidden md:block">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+            </div>
+        </header>
+
+        <!-- 
+         * STREAMING_CHUNK:Main Content Grid 
+         -->
+        <div class="masonry-grid">
+            
+            <!-- COLUMN 1 / ITEM 1: Weight là gì -->
+            <div class="masonry-item">
+                <!-- Section Header -->
+                <div class="section-header border-box-1 bg-[var(--box-purple-bg)]">
+                    1. WEIGHT LÀ GÌ?
+                </div>
+                
+                <div class="pl-2">
+                    <ul class="dash-list mb-6">
+                        <li>Mỗi weight = mức độ model tin vào một tín hiệu nào đó.</li>
+                        <li>Weight lớn theo hướng đúng <br> &rarr; model dễ đoán đúng token tiếp theo hơn.</li>
+                    </ul>
+                    
+                    <!-- Diagram: Scale -->
+                    <div class="flex justify-center items-end h-32 mb-6 relative">
+                        <!-- Label left -->
+                        <div class="absolute left-0 bottom-10 text-[var(--text-green)] text-sm text-center">
+                            tín hiệu<br>quan trọng
+                        </div>
+                        
+                        <!-- The Scale Drawing -->
+                        <div class="relative w-48 h-full flex flex-col items-center">
+                            <!-- Left pan -->
+                            <div class="absolute left-0 bottom-12 w-16 border-b-2 border-[var(--text-main)] flex justify-center">
+                                <!-- Strings -->
+                                <div class="absolute w-[2px] h-12 bg-[var(--text-main)] -top-12 left-0 origin-bottom rotate-[20deg]"></div>
+                                <div class="absolute w-[2px] h-12 bg-[var(--text-main)] -top-12 right-0 origin-bottom rotate-[-20deg]"></div>
+                                <!-- Weights on left -->
+                                <div class="flex items-end justify-center w-full absolute bottom-[2px]">
+                                    <div class="w-5 h-5 bg-green-200 border-2 border-[var(--text-main)] rounded-sm mx-[1px]"></div>
+                                    <div class="w-6 h-6 bg-green-200 border-2 border-[var(--text-main)] rounded-sm mx-[1px]"></div>
+                                    <div class="w-5 h-5 bg-green-200 border-2 border-[var(--text-main)] rounded-sm mx-[1px]"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Right pan -->
+                            <div class="absolute right-0 bottom-16 w-16 border-b-2 border-[var(--text-main)] flex justify-center">
+                                <!-- Strings -->
+                                <div class="absolute w-[2px] h-12 bg-[var(--text-main)] -top-12 left-0 origin-bottom rotate-[20deg]"></div>
+                                <div class="absolute w-[2px] h-12 bg-[var(--text-main)] -top-12 right-0 origin-bottom rotate-[-20deg]"></div>
+                                <!-- Weights on right -->
+                                <div class="flex items-end justify-center w-full absolute bottom-[2px]">
+                                    <div class="w-4 h-4 bg-red-200 border-2 border-[var(--text-main)] rounded-sm mx-[1px]"></div>
+                                    <div class="w-5 h-5 bg-red-200 border-2 border-[var(--text-main)] rounded-sm mx-[1px]"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Balance Beam -->
+                            <div class="absolute w-48 h-[4px] bg-[var(--text-main)] rounded-full top-8 rotate-[10deg] origin-center"></div>
+                            
+                            <!-- Center Stand -->
+                            <div class="absolute top-8 w-2 h-20 bg-[var(--text-main)] border border-gray-800"></div>
+                            <div class="absolute bottom-4 w-12 h-2 bg-[var(--text-main)] rounded-t-md"></div>
+                        </div>
+                        
+                        <!-- Label right -->
+                        <div class="absolute right-0 bottom-16 text-[var(--text-red)] text-sm text-center">
+                            tín hiệu<br>ít quan trọng
+                        </div>
+                    </div>
+                    
+                    <!-- Callout box -->
+                    <div class="hand-drawn-border-soft p-3 bg-white mb-4 relative ml-4 max-w-[90%]">
+                        Weight lệch &rarr; nhìn nhầm trọng tâm<br>
+                        &rarr; đoán sai token tiếp.
+                        <!-- Robot Icon -->
+                        <div class="absolute -right-8 -bottom-4 bg-white rounded-full p-1 border-2 border-[var(--text-main)]">
+                            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                                <circle cx="12" cy="5" r="2"></circle>
+                                <path d="M12 7v4"></path>
+                                <line x1="8" y1="16" x2="8" y2="16.01"></line>
+                                <line x1="16" y1="16" x2="16" y2="16.01"></line>
+                                <path d="M3 14h-1"></path>
+                                <path d="M22 14h-1"></path>
+                            </svg>
+                            <!-- Red X badge -->
+                            <div class="absolute -top-2 -right-2 bg-red-100 border border-red-500 text-red-500 rounded-full w-5 h-5 flex items-center justify-center font-bold text-xs">X</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLUMN 1 / ITEM 2: Flow tổng quát -->
+            <div class="masonry-item">
+                <div class="section-header border-box-1 bg-[var(--box-purple-bg)]">
+                    2. FLOW TỔNG QUÁT
+                </div>
+                
+                <div class="pl-2">
+                    <!-- Flow diagram -->
+                    <div class="flex items-center justify-center flex-wrap gap-2 mb-6 p-2 rounded-xl border border-dashed border-gray-300 bg-white/50">
+                        <div class="node-block bg-[var(--hl-blue)] border-[var(--hl-blue-border)]">
+                            <span class="font-bold">x</span>
+                            <span class="text-xs">(input)</span>
+                        </div>
+                        <div class="arrow-right"></div>
+                        <div class="node-block bg-[var(--hl-yellow)] border-[var(--hl-yellow-border)]">
+                            <span class="font-bold">model</span>
+                            <span class="text-xs">(&theta;)</span>
+                        </div>
+                        <div class="arrow-right"></div>
+                        <div class="node-block bg-[var(--hl-green)] border-[var(--hl-green-border)]">
+                            <span class="font-bold">y&#770;</span>
+                            <span class="text-xs">(dự đoán)</span>
+                        </div>
+                        <div class="arrow-right"></div>
+                        <div class="node-block bg-[var(--hl-red)] border-[var(--hl-red-border)]">
+                            <span class="font-bold">L</span>
+                            <span class="text-xs">(loss)</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Numbered list -->
+                    <div class="mb-4">
+                        <div class="flex items-start mb-1">
+                            <span class="num-circle num-1">1</span>
+                            <span>Nhận input <span class="font-bold text-blue-600">x</span></span>
+                        </div>
+                        <div class="flex items-start mb-1">
+                            <span class="num-circle num-2">2</span>
+                            <span>Dùng bộ trọng số <span class="font-bold text-yellow-600">&theta;</span> để tạo dự đoán <span class="font-bold text-green-600">y&#770;</span></span>
+                        </div>
+                        <div class="flex items-start mb-1">
+                            <span class="num-circle num-3">3</span>
+                            <span>So với đáp án thật <span class="font-bold">y</span> để tính lỗi <span class="font-bold text-red-500">L</span></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Idea callout -->
+                    <div class="flex items-center gap-2 mb-6">
+                        <div class="text-yellow-500">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"></path>
+                            </svg>
+                        </div>
+                        <div class="hand-drawn-border-alt px-3 py-1 bg-white">
+                            Với LLM: đoán token tiếp theo.
+                        </div>
+                    </div>
+                    
+                    <!-- Loss explanation box -->
+                    <div class="hand-drawn-border-soft p-4 bg-[var(--bg-paper)] mb-4 relative">
+                        <p class="mb-2">Nếu token đúng có xác suất thấp &rarr; lỗi cao<br>
+                        <span class="font-bold block text-center mt-1">L = - log (p đúng)</span></p>
+                        
+                        <p class="font-bold mb-2">VD: đáp án đúng là "Paris"</p>
+                        
+                        <div class="flex items-center gap-2 mb-1 pl-2">
+                            <div class="w-4 h-4 rounded-full bg-green-100 border border-green-500 flex items-center justify-center text-green-600 text-[10px]">✓</div>
+                            <span>Model cho Paris 0.9 &rarr; lỗi nhỏ</span>
+                        </div>
+                        <div class="flex items-center gap-2 mb-3 pl-2">
+                            <div class="w-4 h-4 rounded-full bg-red-100 border border-red-500 flex items-center justify-center text-red-600 text-[10px]">✕</div>
+                            <span>Model cho Paris 0.1 &rarr; lỗi lớn</span>
+                        </div>
+                        
+                        <p class="text-center pt-2 border-t border-dashed border-gray-400">
+                            Nói nôm na: tin đúng &rarr; bị phạt ít,<br>
+                            tin sai &rarr; bị phạt nhiều.
+                        </p>
+                        
+                        <div class="absolute -right-4 -bottom-4 text-yellow-400">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLUMN 1 / ITEM 3: Model hỏi từng weight -->
+            <div class="masonry-item">
+                <div class="section-header border-box-4 bg-[var(--box-purple-bg)]">
+                    4. MODEL HỎI TỪNG WEIGHT MỘT CÂU
+                </div>
+                
+                <div class="pl-2">
+                    <p class="mb-4">Nếu chỉnh weight này lên/xuống một chút thì lỗi sẽ tăng hay giảm?</p>
+                    
+                    <div class="flex items-center mb-6 relative">
+                        <!-- Partial Derivative symbol -->
+                        <div class="hand-drawn-border bg-white px-3 py-2 text-xl font-bold flex flex-col items-center">
+                            <div class="border-b-2 border-[var(--text-main)] px-2">&part;L</div>
+                            <div class="px-2">&part;W</div>
+                        </div>
+                        
+                        <!-- curly brace conceptually -->
+                        <div class="text-4xl font-light mx-2 text-gray-500">{</div>
+                        
+                        <div class="text-sm">
+                            <div class="mb-2 flex items-start">
+                                <span class="font-bold mr-1">> 0:</span> 
+                                <span>chỉnh hướng đó làm<br>lỗi tăng &rarr; đi hướng ngược lại</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="font-bold mr-1">< 0:</span> 
+                                <span>chỉnh hướng đó làm<br>lỗi giảm &rarr; giữ hướng sửa đó</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Magnifying glass -->
+                        <div class="absolute right-0 top-0 text-gray-600">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <!-- Robot callout -->
+                    <div class="flex items-center gap-3">
+                        <div class="bg-white rounded-full p-1 border-2 border-[var(--text-main)] relative">
+                            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                                <circle cx="12" cy="5" r="2"></circle>
+                                <path d="M12 7v4"></path>
+                                <line x1="8" y1="16" x2="8" y2="16.01"></line>
+                                <line x1="16" y1="16" x2="16" y2="16.01"></line>
+                            </svg>
+                            <span class="absolute -top-2 -right-2 text-xs font-bold bg-white rounded-full">?</span>
+                        </div>
+                        <div class="hand-drawn-border-alt px-3 py-1 bg-white flex-1 relative">
+                            <!-- Speech bubble tail -->
+                            <div class="absolute -left-2 top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-l-2 border-b-2 border-[var(--text-main)] rotate-45"></div>
+                            Model thử hỏi tất cả weight.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- COLUMN 1 / ITEM 4: Sau khi có gradient -->
+            <div class="masonry-item">
+                <div class="section-header border-box-1 bg-[var(--box-purple-bg)]">
+                    6. SAU KHI CÓ GRADIENT
+                </div>
+                
+                <div class="pl-2 flex flex-wrap md:flex-nowrap gap-4 items-center">
+                    <div class="text-center">
+                        <div class="hand-drawn-border bg-white px-4 py-2 font-bold mb-1 text-green-700 border-green-300 bg-green-50">
+                            g = &nabla;<sub>&theta;</sub>L
+                        </div>
+                        <div class="text-[12px]">Gradient = hướng lỗi tăng</div>
+                    </div>
+                    
+                    <div class="hand-drawn-border-soft p-3 bg-white flex-1 flex justify-between items-center text-sm border-orange-200">
+                        <span>Backprop = biến cái sai ở output<br>thành tín hiệu sửa weight bên trong model.</span>
+                        <div class="text-red-500 ml-2">
+                            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <circle cx="12" cy="12" r="6"></circle>
+                                <circle cx="12" cy="12" r="2"></circle>
+                                <line x1="12" y1="2" x2="12" y2="4"></line>
+                                <line x1="12" y1="20" x2="12" y2="22"></line>
+                                <line x1="2" y1="12" x2="4" y2="12"></line>
+                                <line x1="20" y1="12" x2="22" y2="12"></line>
+                                <path d="M18 6l4 -4"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 
+             * STREAMING_CHUNK:Column 2 start 
+             -->
+
+            <!-- COLUMN 2 / ITEM 1: Ví dụ đầu -->
+            <div class="masonry-item">
+                <div class="flex items-start mb-4">
+                    <div class="hand-drawn-border bg-white px-2 py-1 font-bold text-sm mr-3">VD</div>
+                    <div class="flex-1">
+                        Model thấy vài dấu hiệu trong câu, weight quyết định tín hiệu nào quan trọng hơn, tín hiệu nào giảm vai trò.
+                    </div>
+                </div>
+                
+                <div class="flex justify-center mb-6">
+                    <div class="hand-drawn-border-alt px-4 py-2 bg-white">
+                        ... tôi muốn đi du lịch ở ...
+                    </div>
+                </div>
+                
+                <!-- Tree diagram -->
+                <div class="relative flex flex-col items-center mb-6">
+                    <!-- Tree branches -->
+                    <div class="absolute top-0 w-3/4 h-8 border-t-2 border-l-2 border-r-2 border-[var(--text-main)] rounded-t-lg mt-2"></div>
+                    <div class="absolute top-2 w-[2px] h-6 bg-[var(--text-main)]"></div>
+                    
+                    <!-- Nodes row -->
+                    <div class="flex justify-between w-full mt-10 px-4">
+                        <div class="flex flex-col items-center">
+                            <div class="hand-drawn-border bg-[var(--hl-green)] px-3 py-1 mb-1">Paris</div>
+                            <div>0.9</div>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <div class="hand-drawn-border bg-[var(--hl-yellow)] px-3 py-1 mb-1">bãi biển</div>
+                            <div>0.2</div>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <div class="hand-drawn-border bg-[var(--hl-red)] px-3 py-1 mb-1">núi</div>
+                            <div>0.1</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Labels bottom -->
+                    <div class="flex justify-between w-full mt-2 px-6 text-sm">
+                        <div class="text-[var(--text-green)] relative">
+                            <!-- Dashed line -->
+                            <div class="absolute -top-2 left-1/2 w-[2px] h-2 border-l-2 border-dashed border-[var(--text-green)]"></div>
+                            dễ đoán đúng
+                        </div>
+                        <div class="text-[var(--text-red)] relative">
+                             <!-- Dashed line -->
+                             <div class="absolute -top-2 left-1/2 w-[2px] h-2 border-l-2 border-dashed border-[var(--text-red)]"></div>
+                            khó đoán đúng
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Backprop definition box -->
+                <div class="hand-drawn-border-soft p-3 bg-blue-50 border-blue-200 flex justify-between items-center">
+                    <div>
+                        Backpropagation = lan truyền ngược lỗi<br>
+                        &rarr; để sửa weight.
+                    </div>
+                    <div class="text-gray-500 rotate-45">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLUMN 2 / ITEM 2: Backprop lan truyền ngược -->
+            <div class="masonry-item">
+                <div class="section-header border-box-4 bg-[var(--box-purple-bg)]">
+                    3. BACKPROP - LAN TRUYỀN NGƯỢC
+                </div>
+                
+                <div class="pl-2">
+                    <p class="mb-3">Nghĩ đơn giản như làm bài toán:</p>
+                    
+                    <!-- Illustration: Student -> Paper -> Teacher -->
+                    <div class="flex justify-between items-center mb-4 px-2">
+                        <div class="flex flex-col items-center">
+                            <!-- Simple custom SVG for student writing -->
+                            <svg width="50" height="50" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3">
+                                <circle cx="50" cy="30" r="15" fill="#fde68a"></circle>
+                                <path d="M35 30 Q50 15 65 30" stroke-width="4"></path> <!-- Hair -->
+                                <path d="M30 60 C30 45 70 45 70 60 L75 90 L25 90 Z" fill="#93c5fd"></path>
+                                <rect x="35" y="75" width="30" height="15" fill="white"></rect>
+                                <path d="M60 65 L45 80"></path> <!-- Arm writing -->
+                            </svg>
+                            <span class="text-sm mt-1">làm bài</span>
+                        </div>
+                        
+                        <div class="arrow-right"></div>
+                        
+                        <div class="flex flex-col items-center">
+                            <!-- Simple custom SVG for graded paper -->
+                            <div class="hand-drawn-border bg-white w-10 h-14 flex flex-col p-1 relative">
+                                <div class="w-full border-b border-gray-300 mb-1"></div>
+                                <div class="w-full border-b border-gray-300 mb-1"></div>
+                                <div class="w-2/3 border-b border-gray-300 mb-1"></div>
+                                <div class="absolute top-1 right-1 text-red-500 font-bold text-xs">X</div>
+                            </div>
+                            <span class="text-sm mt-1">giáo viên chấm sai</span>
+                        </div>
+                        
+                        <div class="arrow-right"></div>
+                        
+                        <div class="flex flex-col items-center">
+                             <!-- Student reviewing -->
+                             <svg width="50" height="50" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3">
+                                <circle cx="50" cy="30" r="15" fill="#fde68a"></circle>
+                                <path d="M35 30 Q50 15 65 30" stroke-width="4"></path>
+                                <path d="M30 60 C30 45 70 45 70 60 L75 90 L25 90 Z" fill="#93c5fd"></path>
+                                <rect x="35" y="75" width="30" height="15" fill="white"></rect>
+                                <!-- Arms pointing -->
+                                <path d="M25 65 L40 80 M75 65 L60 80"></path> 
+                            </svg>
+                            <span class="text-sm mt-1">lần lại từ đâu sai</span>
+                        </div>
+                    </div>
+                    
+                    <p class="font-bold mb-2">Model cũng vậy:</p>
+                    <div class="hand-drawn-border-soft p-3 bg-[#fff9c4] mb-4">
+                        Nó đoán xong &rarr; tính loss &rarr; lần ngược về các weight đã góp phần tạo ra đáp án đó.
+                    </div>
+                    
+                    <!-- Forward vs Backward pass diagram -->
+                    <div class="bg-white p-3 rounded-xl border border-dashed border-gray-300">
+                        <div class="text-sm text-green-700 mb-1">Luồng đi xuôi:</div>
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="node-circle bg-blue-50 text-sm">x</div>
+                            <div class="arrow-right !w-4"></div>
+                            <div class="node-circle bg-green-50 text-sm">h<sub>1</sub></div>
+                            <div class="arrow-right !w-4"></div>
+                            <div class="node-circle bg-green-50 text-sm">h<sub>2</sub></div>
+                            <div class="arrow-right !w-4"></div>
+                            <div class="node-circle bg-yellow-50 text-sm">y&#770;</div>
+                            <div class="arrow-right !w-4"></div>
+                            <div class="node-circle bg-red-50 text-sm">L</div>
+                        </div>
+                        
+                        <div class="text-sm text-red-700 mb-1">Luồng đi ngược (backprop):</div>
+                        <div class="flex items-center justify-between">
+                            <div class="node-circle bg-purple-100 text-sm font-bold border-purple-400">W</div>
+                            <div class="arrow-left !w-4 !bg-red-400 before:!border-r-red-400"></div>
+                            <div class="node-circle bg-red-50 text-sm border-red-300">h<sub>1</sub></div>
+                            <div class="arrow-left !w-4 !bg-red-400 before:!border-r-red-400"></div>
+                            <div class="node-circle bg-red-50 text-sm border-red-300">h<sub>2</sub></div>
+                            <div class="arrow-left !w-4 !bg-red-400 before:!border-r-red-400"></div>
+                            <div class="node-circle bg-red-50 text-sm border-red-300">y&#770;</div>
+                            <div class="arrow-left !w-4 !bg-red-400 before:!border-r-red-400"></div>
+                            <div class="node-circle bg-red-100 text-sm border-red-400 font-bold">L</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Callout -->
+                    <div class="hand-drawn-border-alt px-3 py-2 bg-blue-50 mt-4 text-sm text-center border-blue-200">
+                        Lỗi nằm ở cuối, nhưng nguyên nhân nằm rải rác ở nhiều weight phía trước.
+                    </div>
+                </div>
+            </div>
+            
+            <!-- COLUMN 2 / ITEM 3: Chain rule -->
+            <div class="masonry-item">
+                <div class="section-header border-box-4 bg-[var(--box-purple-bg)]">
+                    5. CHAIN RULE - CÁCH CHIA LỖI
+                </div>
+                
+                <div class="pl-2">
+                    <!-- Math formula -->
+                    <div class="flex items-center justify-center py-4 bg-white hand-drawn-border-soft mb-4 text-lg">
+                        <div class="math-fraction">
+                            <span>&part;L</span>
+                            <span>&part;W<sub>1</sub></span>
+                        </div>
+                        <span class="mx-2">=</span>
+                        <div class="math-fraction">
+                            <span>&part;L</span>
+                            <span>&part;y&#770;</span>
+                        </div>
+                        <span class="mx-2 font-bold text-xs">x</span>
+                        <div class="math-fraction">
+                            <span>&part;y&#770;</span>
+                            <span>&part;h<sub>2</sub></span>
+                        </div>
+                        <span class="mx-2 font-bold text-xs">x</span>
+                        <div class="math-fraction">
+                            <span>&part;h<sub>2</sub></span>
+                            <span>&part;h<sub>1</sub></span>
+                        </div>
+                        <span class="mx-2 font-bold text-xs">x</span>
+                        <div class="math-fraction">
+                            <span>&part;h<sub>1</sub></span>
+                            <span>&part;W<sub>1</sub></span>
+                        </div>
+                    </div>
+                    
+                    <p class="text-sm pl-2">
+                        &rarr; Muốn biết W<sub>1</sub> ảnh hưởng tới lỗi cuối bao nhiêu, ta lần qua các bước từ W<sub>1</sub> tới L, rồi nhân mức ảnh hưởng của từng đoạn.
+                    </p>
+                    
+                    <div class="flex justify-end mt-2">
+                        <div class="text-yellow-400">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- COLUMN 2 / ITEM 4: Model hoc vi -->
+            <div class="masonry-item pt-4">
+                <div class="hand-drawn-border bg-yellow-50 border-yellow-300 p-4 relative">
+                    <p>Model học vì:<br>
+                    Sau mỗi lần sai, nó biết nên kéo weight theo hướng nào, kéo nhẹ thôi, rồi lặp lại rất nhiều lần.</p>
+                    
+                    <!-- Graph icon -->
+                    <div class="absolute bottom-2 right-2 text-green-600">
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+        </div> <!-- End Masonry Grid -->
+    </div> <!-- End Container -->
+
+</body>
+</html>

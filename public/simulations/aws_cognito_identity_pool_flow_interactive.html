@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cognito Identity Pool to STS Flow</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pangolin&family=Klee+One:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg-paper:#fdfaf3; --grid-line:#efede7; --grid-line-vertical:#f0ebe1; --text-main:#333333; --box-yellow-bg:#fffcf0; --box-blue-bg:#f0f7fd; --box-green-bg:#f0fdf4; --box-orange-bg:#fff5e6; }
+    body { font-family:'Pangolin','Klee One',cursive,sans-serif!important; background-color:var(--bg-paper)!important; color:var(--text-main)!important; background-image:linear-gradient(var(--grid-line) 1px,transparent 1px),linear-gradient(90deg,var(--grid-line-vertical) 1px,transparent 1px)!important; background-size:20px 20px!important; }
+    .bg-slate-950,.bg-slate-900,.bg-slate-900\/90,.bg-slate-900\/80,.bg-slate-900\/60,.bg-slate-950\/70,.bg-slate-950\/50,.bg-slate-800,.bg-slate-800\/30,.bg-slate-800\/20 { background-color:rgba(255,255,255,.86)!important; }
+    .text-white,.text-slate-100,.text-slate-200,.text-slate-300 { color:var(--text-main)!important; }
+    .text-slate-400,.text-slate-500 { color:#666!important; }
+    .border-slate-800,.border-slate-700,.border-white\/10,.border-white\/5 { border-color:var(--text-main)!important; border-width:2px!important; }
+    .rounded-xl,.rounded-2xl,.rounded-lg { border-radius:10px 15px 8px 12px/12px 8px 15px 10px!important; }
+    .shadow-xl,.shadow-2xl,.shadow-lg { box-shadow:3px 3px 0 rgba(0,0,0,.1)!important; }
+    @keyframes dash { to { stroke-dashoffset: -28; } }
+    .active-route { stroke-dasharray: 10 6; animation: dash .9s linear infinite; filter: drop-shadow(0 0 6px currentColor); }
+    .node { transition: transform .2s ease, opacity .2s ease, box-shadow .2s ease, border-color .2s ease; }
+    .node.active { transform: translateY(-2px); box-shadow: 0 0 0 2px rgba(249,115,22,.18), 0 12px 28px rgba(2,6,23,.35); }
+    .node.dim { opacity: .28; }
+    .bg-grid {
+      background-size: 40px 40px;
+      background-image:
+        linear-gradient(to right, rgba(30, 41, 59, 0.25) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(30, 41, 59, 0.25) 1px, transparent 1px);
+    }
+    #svg-container { cursor: grab; }
+    #svg-container:active { cursor: grabbing; }
+    #zoom-pan-group { transition: transform 0.05s ease-out; transform-origin: 0 0; }
+  
+
+    /* Sketchnote normalization: remove legacy dark dashboard surfaces. */
+    html { background: var(--bg-paper) !important; color: var(--text-main) !important; }
+    body, main, header, aside, section { color: var(--text-main) !important; }
+    [class*="bg-sky-950"], [class*="bg-emerald-950"], [class*="bg-orange-950"], [class*="bg-violet-950"],
+    [class*="bg-amber-950"], [class*="bg-red-950"], [class*="bg-indigo"], [class*="bg-purple-950"],
+    [class*="bg-cyan-950"], [class*="bg-rose-950"], [class*="bg-[#"], [class*="radial-gradient"],
+    [class*="from-slate"], [class*="to-slate"], [class*="via-slate"] {
+      background: transparent !important;
+      background-color: transparent !important;
+      background-image: none !important;
+    }
+    [class*="bg-sky-500"], [class*="bg-cyan-500"], [class*="bg-blue-600"] { background-color: #e8f0fe !important; color: var(--text-main) !important; }
+    [class*="bg-orange-500"], [class*="bg-amber-500"] { background-color: #fff5e6 !important; color: var(--text-main) !important; }
+    [class*="bg-emerald-500"], [class*="bg-green-500"] { background-color: #f0fdf4 !important; color: var(--text-main) !important; }
+    [class*="text-sky"], [class*="text-cyan"], [class*="text-blue"], [class*="text-indigo"], [class*="text-purple"],
+    [class*="text-violet"], [class*="text-orange"], [class*="text-amber"], [class*="text-emerald"], [class*="text-green"], [class*="text-red"], [class*="text-rose"] {
+      color: var(--text-main) !important;
+    }
+    [class*="border-sky"], [class*="border-cyan"], [class*="border-blue"], [class*="border-orange"], [class*="border-amber"],
+    [class*="border-emerald"], [class*="border-green"], [class*="border-violet"], [class*="border-purple"], [class*="border-red"], [class*="border-rose"] {
+      border-color: #9f9488 !important;
+    }
+    aside, header, .node, [data-component], [data-node], [class*="scenario-btn"], [class*="mode-btn"], [class*="step-btn"] {
+      background-color: rgba(255,255,255,.72) !important;
+      border-color: #9f9488 !important;
+      box-shadow: 2px 2px 0 rgba(109,98,87,.12) !important;
+    }
+    section[class*="relative"], #svg-container, #svg-container-wrapper {
+      background-color: rgba(253,250,243,.78) !important;
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-vertical) 1px, transparent 1px) !important;
+      background-size: 20px 20px !important;
+    }
+    svg rect[fill="#082f49"], svg rect[fill="#052e16"], svg rect[fill="#0f172a"], svg rect[fill="#111827"] { fill: #f0f7fd !important; fill-opacity: .82 !important; }
+    svg rect[fill="#431407"], svg rect[fill="#7c2d12"] { fill: #fff5e6 !important; fill-opacity: .84 !important; }
+    svg rect[fill="#312e81"], svg rect[fill="#581c87"], svg rect[fill="#2e1065"] { fill: #f4f0ff !important; fill-opacity: .84 !important; }
+    svg rect[fill="#064e3b"], svg rect[fill="#052e16"] { fill: #f0fdf4 !important; fill-opacity: .84 !important; }
+    svg text { fill: var(--text-main) !important; }
+    pre, code { background: #fffaf0 !important; color: var(--text-main) !important; border-color: #e6d38e !important; }
+    ::-webkit-scrollbar-thumb { background: #c9bba8 !important; }
+
+
+    /* System-design visualizer line grammar on top of sketchnote theme. */
+    svg path[id*="base"], svg path[id*="path-"][id*="base"] {
+      stroke: #b9afa3 !important;
+      stroke-width: 2.25 !important;
+      stroke-linecap: round !important;
+      opacity: .78 !important;
+      stroke-dasharray: 7 7 !important;
+      filter: none !important;
+    }
+    svg path[id*="inner"] {
+      stroke-width: 0 !important;
+      opacity: 0 !important;
+    }
+    svg path[id*="active"], svg path.active-route {
+      stroke-width: 3 !important;
+      stroke-linecap: round !important;
+      stroke-dasharray: 9 6 !important;
+      opacity: .95 !important;
+      filter: none !important;
+    }
+    svg path:not([id*="base"]):not([id*="inner"]):not([id*="active"]).active-route {
+      stroke-width: 3 !important;
+    }
+    svg marker polygon { fill: currentColor; }
+    svg text[id*="label"], svg text {
+      paint-order: stroke !important;
+      stroke: rgba(253,250,243,.9) !important;
+      stroke-width: 3px !important;
+      stroke-linejoin: round !important;
+      font-weight: 700 !important;
+    }
+    svg rect {
+      stroke-width: 1.5 !important;
+      rx: 12 !important;
+    }
+    .node, [data-component], [data-node] {
+      min-height: 76px;
+      border-width: 1.5px !important;
+      background-color: rgba(255,255,255,.84) !important;
+    }
+    .node img, [data-component] img, [data-node] img {
+      filter: saturate(.85) contrast(.95);
+    }
+    .node.active, [data-component].active, [data-node].active {
+      outline: 2px dashed #4fa3b8 !important;
+      outline-offset: 3px !important;
+      box-shadow: 3px 3px 0 rgba(79,163,184,.16) !important;
+    }
+
+
+    /* FINAL GLOBAL SIMULATION STYLE: sketchnote shell + system-design lines. */
+    :root {
+      --sim-paper: #fdfaf3;
+      --sim-ink: #333333;
+      --sim-muted: #6b6258;
+      --sim-line: #9f9488;
+      --sim-blue: #1f9bb4;
+      --sim-teal: #16a394;
+      --sim-yellow: #d4a514;
+      --sim-orange: #e1782f;
+      --sim-green: #2f8f5b;
+      --sim-red: #c94c4c;
+      --sim-blue-fill: rgba(31,155,180,.12);
+      --sim-yellow-fill: rgba(245,196,72,.16);
+      --sim-green-fill: rgba(47,143,91,.13);
+      --sim-orange-fill: rgba(225,120,47,.13);
+      --sim-purple-fill: rgba(137,112,190,.12);
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-vertical) 1px, transparent 1px),
+        radial-gradient(45rem 26rem at 20% 10%, rgba(245,196,72,.12), transparent 62%),
+        radial-gradient(38rem 24rem at 80% 80%, rgba(31,155,180,.10), transparent 60%);
+      background-size: 20px 20px, 20px 20px, auto, auto;
+      pointer-events: none;
+    }
+    header, aside, section, [class*="rounded"], [class*="border"] {
+      border-color: var(--sim-line) !important;
+    }
+    header, aside, main > section, .node, [data-component], [data-node], [class*="scenario-btn"], [class*="mode-btn"], [class*="step-btn"], [class*="service-card"] {
+      color: var(--sim-ink) !important;
+      background: rgba(255,255,255,.68) !important;
+      box-shadow: 2px 2px 0 rgba(109,98,87,.12) !important;
+    }
+    main > section, #svg-container, #svg-container-wrapper {
+      background:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-vertical) 1px, transparent 1px),
+        rgba(253,250,243,.84) !important;
+      background-size: 20px 20px, 20px 20px, auto !important;
+    }
+    body [class*="bg-[radial-gradient"], body [class*="from-slate"], body [class*="to-slate"], body [class*="via-slate"], body [class*="bg-slate"], body [class*="bg-gray-9"], body [class*="bg-black"] {
+      background: transparent !important;
+      background-color: transparent !important;
+      background-image: none !important;
+    }
+    body [class*="text-slate"], body [class*="text-white"], body [class*="text-gray-1"], body [class*="text-gray-2"] { color: var(--sim-ink) !important; }
+    body [class*="text-sky"], body [class*="text-cyan"], body [class*="text-blue"] { color: var(--sim-blue) !important; }
+    body [class*="text-emerald"], body [class*="text-green"] { color: var(--sim-green) !important; }
+    body [class*="text-orange"], body [class*="text-amber"] { color: var(--sim-orange) !important; }
+    body [class*="text-red"], body [class*="text-rose"] { color: var(--sim-red) !important; }
+    body [class*="text-violet"], body [class*="text-purple"], body [class*="text-indigo"] { color: #7258a7 !important; }
+    svg rect[fill="#020617"], svg rect[fill="#030712"], svg rect[fill="#0f172a"], svg rect[fill="#111827"], svg rect[fill="#1e293b"], svg rect[fill="#082f49"], svg rect[fill="#052e16"], svg rect[fill="#431407"], svg rect[fill="#312e81"], svg rect[fill="#581c87"], svg rect[fill="#064e3b"] {
+      fill: rgba(255,255,255,.58) !important;
+      stroke: var(--sim-line) !important;
+      fill-opacity: 1 !important;
+    }
+    svg rect[stroke="#0c4a6e"], svg rect[stroke="#14532d"], svg rect[stroke="#9a3412"], svg rect[stroke="#1e293b"], svg rect[stroke="#0f766e"] {
+      stroke: var(--sim-line) !important;
+    }
+    svg path[id*="base"], svg path[id*="inner"] {
+      stroke: var(--sim-line) !important;
+      stroke-width: 2 !important;
+      stroke-dasharray: 7 7 !important;
+      opacity: .75 !important;
+    }
+    svg path[id*="inner"] { opacity: 0 !important; }
+    svg path[id*="active"], svg path.active-route {
+      stroke-width: 3 !important;
+      stroke-dasharray: 9 6 !important;
+      filter: none !important;
+    }
+    svg text {
+      fill: var(--sim-ink) !important;
+      stroke: rgba(253,250,243,.92) !important;
+      stroke-width: 3px !important;
+      paint-order: stroke !important;
+    }
+    .node, [data-component], [data-node] {
+      background: rgba(255,255,255,.82) !important;
+      border: 1.5px solid var(--sim-line) !important;
+    }
+    .node.active, [data-component].active, [data-node].active {
+      outline: 2px dashed var(--sim-blue) !important;
+      outline-offset: 3px !important;
+    }
+
+
+    /* FINAL COLORFUL SKETCHNOTE FILL: avoid plain-white simulator panels. */
+    header {
+      background: linear-gradient(90deg, rgba(244,240,255,.92), rgba(255,252,240,.9)) !important;
+    }
+    aside:first-of-type, main > aside:first-child, .left-panel {
+      background: linear-gradient(180deg, rgba(255,252,240,.94), rgba(244,240,255,.72)) !important;
+    }
+    aside:last-of-type, main > aside:last-child, .right-panel {
+      background: linear-gradient(180deg, rgba(240,247,253,.94), rgba(232,240,254,.72)) !important;
+    }
+    main > section, #svg-container, #svg-container-wrapper {
+      background:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-vertical) 1px, transparent 1px),
+        linear-gradient(135deg, rgba(240,247,253,.78), rgba(255,252,240,.72) 45%, rgba(240,253,244,.62)) !important;
+      background-size: 20px 20px, 20px 20px, auto !important;
+    }
+    [class*="step-btn"], [class*="scenario-btn"], [class*="mode-btn"] {
+      background: rgba(255,248,214,.88) !important;
+    }
+    [class*="step-btn"]:nth-child(2n), [class*="scenario-btn"]:nth-child(2n), [class*="mode-btn"]:nth-child(2n) {
+      background: rgba(240,247,253,.88) !important;
+    }
+    [class*="step-btn"]:nth-child(3n), [class*="scenario-btn"]:nth-child(3n), [class*="mode-btn"]:nth-child(3n) {
+      background: rgba(240,253,244,.88) !important;
+    }
+    .node, [data-component], [data-node] {
+      background: rgba(240,247,253,.9) !important;
+    }
+    .node:nth-of-type(2n), [data-component]:nth-of-type(2n), [data-node]:nth-of-type(2n) {
+      background: rgba(255,245,230,.9) !important;
+    }
+    .node:nth-of-type(3n), [data-component]:nth-of-type(3n), [data-node]:nth-of-type(3n) {
+      background: rgba(240,253,244,.9) !important;
+    }
+    .node:nth-of-type(4n), [data-component]:nth-of-type(4n), [data-node]:nth-of-type(4n) {
+      background: rgba(244,240,255,.9) !important;
+    }
+    [class*="bg-amber"], [class*="bg-yellow"] { background-color: rgba(255,248,214,.9) !important; }
+    [class*="bg-sky"], [class*="bg-cyan"], [class*="bg-blue"] { background-color: rgba(240,247,253,.9) !important; }
+    [class*="bg-emerald"], [class*="bg-green"] { background-color: rgba(240,253,244,.9) !important; }
+    [class*="bg-orange"] { background-color: rgba(255,245,230,.9) !important; }
+    [class*="bg-violet"], [class*="bg-purple"], [class*="bg-indigo"] { background-color: rgba(244,240,255,.9) !important; }
+    [class*="bg-red"], [class*="bg-rose"] { background-color: rgba(253,234,234,.9) !important; }
+    svg rect[fill], svg path[fill]:not([fill="none"]) {
+      fill-opacity: .86 !important;
+    }
+    svg rect:nth-of-type(4n+1) { fill: #f0f7fd !important; }
+    svg rect:nth-of-type(4n+2) { fill: #fff5e6 !important; }
+    svg rect:nth-of-type(4n+3) { fill: #f0fdf4 !important; }
+    svg rect:nth-of-type(4n+4) { fill: #f4f0ff !important; }
+    .section-header, h2, h3 {
+      text-shadow: 1px 1px 0 rgba(255,255,255,.8);
+    }
+</style>
+</head>
+<body class="h-full bg-slate-950 text-slate-100 font-sans antialiased flex flex-col overflow-hidden">
+  <header class="shrink-0 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md px-6 py-4 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-4">
+      <div class="h-12 w-12 rounded-xl bg-slate-950 border border-slate-700 flex items-center justify-center p-2">
+        <img src="/icons/aws/services/security-identity/amazon-cognito.svg" alt="" class="h-8 w-8" />
+      </div>
+      <div>
+        <h1 class="text-lg font-bold tracking-wider text-white uppercase">Cognito Identity Pool -> STS -> IAM Role</h1>
+        <p class="text-xs text-slate-400 mt-0.5">External token -> Identity Pool -> temporary AWS credentials -> resource access.</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 text-xs">
+      <div class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2">
+        <span class="text-slate-500 block">Provider</span>
+        <span id="provider-badge" class="font-bold text-orange-300">OIDC</span>
+      </div>
+      <div class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2">
+        <span class="text-slate-500 block">Temp creds</span>
+        <span id="creds-badge" class="font-bold text-amber-300">STS session</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 flex overflow-hidden p-4 gap-4 min-h-0">
+    <aside class="w-[360px] shrink-0 flex flex-col gap-4 overflow-y-auto pr-1">
+      <section class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 shadow-xl">
+        <h2 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-800 pb-2">Run provider scenarios</h2>
+        <div class="flex flex-col gap-2">
+          <button data-action="scenario" data-scenario="oidc-provider" class="scenario-btn text-left p-3 rounded-lg border border-slate-800 bg-slate-950/50 hover:border-sky-500/50 transition">
+            <span class="text-xs font-bold text-sky-400 block">1. OIDC provider input</span>
+            <span class="text-[10px] text-slate-400 block mt-1">App đã có OIDC token từ external IdP và mang token đó vào Identity Pool.</span>
+          </button>
+          <button data-action="scenario" data-scenario="saml-provider" class="scenario-btn text-left p-3 rounded-lg border border-slate-800 bg-slate-950/50 hover:border-emerald-500/50 transition">
+            <span class="text-xs font-bold text-emerald-400 block">2. SAML provider input</span>
+            <span class="text-[10px] text-slate-400 block mt-1">App/browser mang SAML-backed identity vào Identity Pool để map sang IAM role.</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 shadow-xl">
+        <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-orange-300 block mb-2">Scenario summary</span>
+        <h2 id="scenario-title" class="text-lg font-bold text-white mb-3">OIDC provider input</h2>
+        <p id="scenario-description" class="text-sm text-slate-300 leading-relaxed"></p>
+        <div class="mt-4 bg-slate-950/70 border border-slate-800 rounded-xl p-3">
+          <span class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 block mb-2">Điểm mấu chốt</span>
+          <p id="scenario-insight" class="text-sm text-slate-200 leading-relaxed"></p>
+        </div>
+      </section>
+    </aside>
+
+    <section class="flex-1 min-w-0 bg-slate-900/60 rounded-xl border border-slate-800 relative overflow-hidden shadow-2xl bg-grid">
+      <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,#111827,#020617_70%)] pointer-events-none"></div>
+      <div class="absolute top-4 left-6 text-[11px] font-bold tracking-[0.2em] uppercase text-slate-500 pointer-events-none">AWS identity broker canvas</div>
+
+      <div class="absolute top-3 right-3 z-10 flex flex-col gap-1.5 bg-slate-900/90 p-1.5 rounded-lg border border-slate-700 backdrop-blur-md">
+        <button data-action="zoom" data-delta="0.1" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded text-slate-300 transition" title="Zoom In">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m6-6H6"/></svg>
+        </button>
+        <button data-action="zoom" data-delta="-0.1" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded text-slate-300 transition" title="Zoom Out">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14"/></svg>
+        </button>
+        <button data-action="reset-zoom" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded text-slate-300 text-[9px] font-bold transition" title="Reset">1:1</button>
+      </div>
+
+      <div id="svg-container" class="absolute inset-0 overflow-hidden">
+        <div id="zoom-pan-group" class="relative" style="width: 1320px; height: 720px;">
+        <svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 1320 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arrow-orange" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><polygon points="0 0, 8 4, 0 8" fill="#f97316"></polygon></marker>
+            <marker id="arrow-amber" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><polygon points="0 0, 8 4, 0 8" fill="#f59e0b"></polygon></marker>
+            <marker id="arrow-sky" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><polygon points="0 0, 8 4, 0 8" fill="#38bdf8"></polygon></marker>
+          </defs>
+
+          <rect x="30" y="70" width="260" height="580" rx="14" fill="#0f172a" stroke="#1e293b" stroke-width="2"></rect>
+          <text x="160" y="100" fill="#64748b" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="1">APP / EXTERNAL IDENTITY</text>
+
+          <rect x="350" y="70" width="390" height="580" rx="14" fill="#7c2d12" fill-opacity="0.14" stroke="#9a3412" stroke-width="2"></rect>
+          <text x="545" y="100" fill="#fdba74" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="1">COGNITO IDENTITY BROKER</text>
+
+          <rect x="800" y="70" width="490" height="580" rx="14" fill="#0f172a" stroke="#1e293b" stroke-width="2"></rect>
+          <text x="1045" y="100" fill="#64748b" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="1">AWS AUTHORIZATION SIDE</text>
+
+          <path d="M 250 250 L 420 250" stroke="#1e293b" stroke-width="16" stroke-linecap="round"></path>
+          <path id="path-token" d="M 250 250 L 420 250" stroke="#38bdf8" stroke-width="4" stroke-linecap="round" marker-end="url(#arrow-sky)" class="active-route"></path>
+          <text id="path-token-label" x="335" y="232" fill="#7dd3fc" font-size="10" font-weight="700" text-anchor="middle">External identity token</text>
+
+          <path d="M 620 360 L 860 360" stroke="#1e293b" stroke-width="16" stroke-linecap="round"></path>
+          <path id="path-sts" d="M 620 360 L 860 360" stroke="#f97316" stroke-width="4" stroke-linecap="round" marker-end="url(#arrow-orange)" class="active-route"></path>
+          <text x="740" y="342" fill="#fdba74" font-size="10" font-weight="700" text-anchor="middle">Trusted identity -> STS call</text>
+
+          <path d="M 1040 470 L 1190 470" stroke="#1e293b" stroke-width="16" stroke-linecap="round"></path>
+          <path id="path-resource" d="M 1040 470 L 1190 470" stroke="#f59e0b" stroke-width="4" stroke-linecap="round" marker-end="url(#arrow-amber)" class="active-route"></path>
+          <text x="1115" y="452" fill="#fcd34d" font-size="10" font-weight="700" text-anchor="middle">Temporary credentials used</text>
+        </svg>
+
+        <button id="node-app" data-node="app" class="node absolute left-[70px] top-[170px] w-[190px] rounded-2xl border border-slate-700 bg-slate-900/95 p-4 text-left">
+          <div class="flex items-start gap-3">
+            <img src="/icons/third-party/cisco/topology/workstation.svg" alt="" class="h-10 w-10 shrink-0" />
+            <div>
+              <span class="text-sm font-bold text-white block">Client App</span>
+              <span class="text-[11px] text-slate-400 block mt-1">Mobile / web / browser-based client</span>
+            </div>
+          </div>
+        </button>
+
+        <button id="node-token" data-node="externalToken" class="node absolute left-[95px] top-[330px] w-[180px] rounded-2xl border border-sky-800 bg-sky-950/30 p-4 text-left">
+          <span class="text-xs font-bold text-sky-300 uppercase tracking-[0.18em] block mb-2">Input artifact</span>
+          <span id="token-title" class="text-sm font-bold text-white block">OIDC ID Token</span>
+          <span id="token-subtitle" class="text-[11px] text-slate-400 block mt-1">Token from trusted external provider</span>
+        </button>
+
+        <button id="node-pool" data-node="identityPool" class="node absolute left-[430px] top-[180px] w-[240px] rounded-2xl border border-orange-800 bg-orange-950/30 p-4 text-left">
+          <div class="flex items-start gap-3">
+            <img src="/icons/aws/services/security-identity/amazon-cognito.svg" alt="" class="h-10 w-10 shrink-0" />
+            <div>
+              <span class="text-sm font-bold text-white block">Cognito Identity Pool</span>
+              <span class="text-[11px] text-slate-400 block mt-1">Trusts external identity, does not replace the upstream login.</span>
+            </div>
+          </div>
+        </button>
+
+        <button id="node-mapping" data-node="roleMapping" class="node absolute left-[470px] top-[380px] w-[200px] rounded-2xl border border-amber-800 bg-amber-950/25 p-4 text-left">
+          <span class="text-xs font-bold text-amber-300 uppercase tracking-[0.18em] block mb-2">Decision point</span>
+          <span class="text-sm font-bold text-white block">Role Mapping</span>
+          <span class="text-[11px] text-slate-400 block mt-1">Choose IAM role by provider or claims/rules</span>
+        </button>
+
+        <button id="node-sts" data-node="sts" class="node absolute right-[330px] top-[290px] w-[170px] rounded-2xl border border-orange-800 bg-slate-900/95 p-4 text-left">
+          <img src="/icons/aws/services/security-identity/aws-security-token-service.svg" alt="" class="h-8 w-8 mb-2" />
+          <span class="text-sm font-bold text-white block">AWS STS</span>
+          <span class="text-[11px] text-slate-400 block mt-1">Issues temporary credentials</span>
+        </button>
+
+        <button id="node-role" data-node="iamRole" class="node absolute right-[220px] top-[430px] w-[180px] rounded-2xl border border-amber-800 bg-amber-950/25 p-4 text-left">
+          <img src="/icons/aws/services/security-identity/aws-identity-and-access-management.svg" alt="" class="h-8 w-8 mb-2" />
+          <span class="text-sm font-bold text-white block">IAM Role Session</span>
+          <span class="text-[11px] text-slate-400 block mt-1">Temporary access scope after trust succeeds</span>
+        </button>
+
+        <button id="node-resource" data-node="resource" class="node absolute right-[40px] top-[420px] w-[160px] rounded-2xl border border-amber-800 bg-slate-900/95 p-4 text-left">
+          <img src="/icons/aws/resources/storage/amazon-simple-storage-service-s3-object.svg" alt="" class="h-8 w-8 mb-2" />
+          <span class="text-sm font-bold text-white block">AWS Resource</span>
+          <span class="text-[11px] text-slate-400 block mt-1">S3 / API / DynamoDB target</span>
+        </button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="w-[360px] shrink-0 flex flex-col bg-slate-900/80 border border-slate-800 rounded-xl shadow-xl overflow-hidden">
+      <div class="p-4 border-b border-slate-800 bg-slate-900 shrink-0">
+        <h2 class="text-xs font-bold text-emerald-400 uppercase">Giải phẫu kỹ thuật</h2>
+      </div>
+      <div id="inspector-idle" class="flex-1 flex items-center justify-center text-center p-6 text-slate-500">
+        <p class="text-xs max-w-[260px]">Click vào App, External Token, Identity Pool, Role Mapping, STS, IAM Role hoặc AWS Resource để xem boundary trust.</p>
+      </div>
+      <div id="inspector-content" class="hidden flex-1 flex-col p-4 gap-3 overflow-auto">
+        <div>
+          <span id="inspect-badge" class="inline-block bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider mb-2">Node</span>
+          <h3 id="inspect-title" class="text-sm font-bold text-white mb-1">Title</h3>
+          <p id="inspect-desc" class="text-slate-400 text-[12px] leading-relaxed">Description</p>
+        </div>
+        <div class="bg-slate-950/70 border border-slate-800 rounded-lg p-3">
+          <span class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 block mb-2">Flow role</span>
+          <p id="inspect-role" class="text-[12px] text-slate-200 leading-relaxed"></p>
+        </div>
+        <div class="bg-rose-950/30 border border-rose-900/70 rounded-lg p-3">
+          <span class="text-[10px] font-bold uppercase tracking-[0.18em] text-rose-300 block mb-2">Not this</span>
+          <p id="inspect-not" class="text-[12px] text-rose-100 leading-relaxed"></p>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const NODE_DB = {
+      app: {
+        badge: "Client",
+        title: "Client App",
+        desc: "Ứng dụng phía client đã có external identity result từ upstream IdP.",
+        role: "App không tự cấp AWS credentials; app chỉ mang token có sẵn vào Identity Pool để đổi sang AWS access phù hợp.",
+        not: "Không phải nơi phát temporary AWS credentials.",
+      },
+      externalToken: {
+        badge: "Input Artifact",
+        title: "External Token / Assertion",
+        desc: "Identity Pool nhận external identity proof như OIDC token hoặc SAML-backed artifact.",
+        role: "Đây là input trust từ bên ngoài AWS để Identity Pool xác nhận provider nào đang đứng sau request.",
+        not: "Không phải chính IAM role session cuối cùng.",
+      },
+      identityPool: {
+        badge: "Broker",
+        title: "Cognito Identity Pool",
+        desc: "Identity Pool nối external identity sang AWS authorization world.",
+        role: "Nó xác thực trusted provider configuration, nhận identity, rồi quyết định mapping sang IAM role nào.",
+        not: "Không phải primary user directory hay password login system.",
+      },
+      roleMapping: {
+        badge: "Policy bridge",
+        title: "Role Mapping",
+        desc: "Mapping rules quyết định identity này nhận IAM role nào.",
+        role: "Điểm này giải thích vì sao cùng một upstream IdP nhưng user khác nhau có thể rơi vào AWS permissions khác nhau.",
+        not: "Không phải nơi credentials thực sự được phát hành.",
+      },
+      sts: {
+        badge: "Token Service",
+        title: "AWS STS",
+        desc: "STS phát temporary credentials sau khi trust chain đã hợp lệ.",
+        role: "Đây là điểm phát access key / secret / session token tạm thời cho app.",
+        not: "Không phải nơi lưu user gốc hay external identity store.",
+      },
+      iamRole: {
+        badge: "AWS authorization",
+        title: "IAM Role Session",
+        desc: "Temporary role session xác định app được làm gì trong AWS.",
+        role: "AWS permissions cuối cùng nằm ở IAM role policy và trust relationship chứ không nằm trong external token đơn thuần.",
+        not: "Không phải upstream login artifact.",
+      },
+      resource: {
+        badge: "Target",
+        title: "AWS Resource",
+        desc: "Đây là resource cuối cùng app truy cập bằng temporary AWS credentials.",
+        role: "Resource chỉ thấy signed AWS request bằng session credentials đã được STS cấp.",
+        not: "Không trực tiếp hiểu OIDC/SAML token đầu vào của app.",
+      },
+    };
+
+    const SCENARIOS = {
+      "oidc-provider": {
+        provider: "OIDC",
+        title: "OIDC provider input",
+        description: "App có OIDC token từ external IdP. Identity Pool trust provider đó, map identity sang IAM role và đi tiếp qua STS để lấy temporary AWS credentials.",
+        insight: "Identity Pool không thay upstream login. Nó chỉ broker external identity thành AWS authorization context.",
+        tokenTitle: "OIDC ID Token",
+        tokenSubtitle: "JWT from trusted OIDC provider",
+        activeNodes: ["app", "externalToken", "identityPool", "roleMapping", "sts", "iamRole", "resource"],
+      },
+      "saml-provider": {
+        provider: "SAML",
+        title: "SAML provider input",
+        description: "App/browser có SAML-backed identity result. Identity Pool dùng trusted provider mapping tương tự rồi đổi sang AWS temporary credentials qua STS.",
+        insight: "Điểm quan trọng là token/assertion từ bên ngoài chỉ là bằng chứng đầu vào; AWS quyền cuối cùng vẫn tới từ IAM role session.",
+        tokenTitle: "SAML Assertion",
+        tokenSubtitle: "Assertion from trusted SAML provider",
+        activeNodes: ["app", "externalToken", "identityPool", "roleMapping", "sts", "iamRole", "resource"],
+      },
+    };
+
+    const DOM = {
+      providerBadge: document.getElementById("provider-badge"),
+      credsBadge: document.getElementById("creds-badge"),
+      scenarioTitle: document.getElementById("scenario-title"),
+      scenarioDescription: document.getElementById("scenario-description"),
+      scenarioInsight: document.getElementById("scenario-insight"),
+      tokenTitle: document.getElementById("token-title"),
+      tokenSubtitle: document.getElementById("token-subtitle"),
+      tokenPathLabel: document.getElementById("path-token-label"),
+      inspectorIdle: document.getElementById("inspector-idle"),
+      inspectorContent: document.getElementById("inspector-content"),
+      inspectBadge: document.getElementById("inspect-badge"),
+      inspectTitle: document.getElementById("inspect-title"),
+      inspectDesc: document.getElementById("inspect-desc"),
+      inspectRole: document.getElementById("inspect-role"),
+      inspectNot: document.getElementById("inspect-not"),
+    };
+
+    const NODE_ID_MAP = {
+      app: "node-app",
+      externalToken: "node-token",
+      identityPool: "node-pool",
+      roleMapping: "node-mapping",
+      sts: "node-sts",
+      iamRole: "node-role",
+      resource: "node-resource",
+    };
+
+    let currentScenario = "oidc-provider";
+
+    let scale = 0.72;
+    let panX = 20;
+    let panY = 10;
+    let isPanning = false;
+    let startX = 0;
+    let startY = 0;
+
+    function applyTransform() {
+      document.getElementById("zoom-pan-group").style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+    }
+
+    function zoomCanvas(delta) {
+      scale = Math.max(0.35, Math.min(scale + delta, 2.2));
+      applyTransform();
+    }
+
+    function resetZoom() {
+      scale = 0.72;
+      panX = 20;
+      panY = 10;
+      applyTransform();
+    }
+
+    function initZoomPan() {
+      const container = document.getElementById("svg-container");
+      container.addEventListener("wheel", (e) => {
+        e.preventDefault();
+        zoomCanvas(e.deltaY > 0 ? -0.06 : 0.06);
+      }, { passive: false });
+
+      container.addEventListener("mousedown", (e) => {
+        if (e.target.closest("[data-node]")) return;
+        isPanning = true;
+        startX = e.clientX - panX;
+        startY = e.clientY - panY;
+      });
+
+      window.addEventListener("mousemove", (e) => {
+        if (!isPanning) return;
+        panX = e.clientX - startX;
+        panY = e.clientY - startY;
+        applyTransform();
+      });
+
+      window.addEventListener("mouseup", () => { isPanning = false; });
+      container.addEventListener("mouseleave", () => { isPanning = false; });
+      applyTransform();
+    }
+
+    function renderInspector(key) {
+      const node = NODE_DB[key];
+      if (!node) return;
+      DOM.inspectorIdle.classList.add("hidden");
+      DOM.inspectorContent.classList.remove("hidden");
+      DOM.inspectorContent.classList.add("flex");
+      DOM.inspectBadge.textContent = node.badge;
+      DOM.inspectTitle.textContent = node.title;
+      DOM.inspectDesc.textContent = node.desc;
+      DOM.inspectRole.textContent = node.role;
+      DOM.inspectNot.textContent = node.not;
+    }
+
+    function renderScenario(key) {
+      currentScenario = key;
+      const scenario = SCENARIOS[key];
+
+      document.querySelectorAll(".scenario-btn").forEach((btn) => {
+        const active = btn.dataset.scenario === key;
+        btn.classList.toggle("border-orange-500/60", active);
+        btn.classList.toggle("bg-orange-500/10", active);
+      });
+
+      DOM.providerBadge.textContent = scenario.provider;
+      DOM.scenarioTitle.textContent = scenario.title;
+      DOM.scenarioDescription.textContent = scenario.description;
+      DOM.scenarioInsight.textContent = scenario.insight;
+      DOM.tokenTitle.textContent = scenario.tokenTitle;
+      DOM.tokenSubtitle.textContent = scenario.tokenSubtitle;
+      DOM.tokenPathLabel.textContent = `${scenario.provider} identity input`;
+
+      Object.entries(NODE_ID_MAP).forEach(([nodeKey, id]) => {
+        const el = document.getElementById(id);
+        el.classList.toggle("active", scenario.activeNodes.includes(nodeKey));
+        el.classList.toggle("dim", !scenario.activeNodes.includes(nodeKey));
+      });
+    }
+
+    document.body.addEventListener("click", (event) => {
+      const zoomBtn = event.target.closest("[data-action='zoom']");
+      if (zoomBtn) {
+        zoomCanvas(parseFloat(zoomBtn.dataset.delta));
+        return;
+      }
+      const resetBtn = event.target.closest("[data-action='reset-zoom']");
+      if (resetBtn) {
+        resetZoom();
+        return;
+      }
+      const scenarioBtn = event.target.closest("[data-action='scenario']");
+      if (scenarioBtn) {
+        renderScenario(scenarioBtn.dataset.scenario);
+        return;
+      }
+      const nodeBtn = event.target.closest("[data-node]");
+      if (nodeBtn) {
+        renderInspector(nodeBtn.dataset.node);
+      }
+    });
+
+    initZoomPan();
+    renderScenario(currentScenario);
+  </script>
+</body>
+</html>

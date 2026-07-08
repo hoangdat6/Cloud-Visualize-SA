@@ -38,13 +38,13 @@ export default async function PlayPage({ params }: PlayPageProps) {
   }
 
   return (
-    <div className="relative flex h-screen flex-col bg-slate-950 bg-grid bg-aurora">
-      <header className="z-20 shrink-0 bg-slate-950/60 px-4 py-3 backdrop-blur-xl sm:px-6">
+    <div className="relative flex h-screen flex-col bg-[var(--bg-paper)] bg-grid bg-aurora text-[var(--text-main)]">
+      <header className="z-20 shrink-0 border-b-2 border-dashed border-gray-400 bg-[var(--bg-paper)]/90 px-4 py-3 backdrop-blur-xl sm:px-6">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3 sm:gap-4">
             <Link href="/" className="hidden shrink-0 items-center gap-2.5 sm:flex">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-purple-500 shadow-lg shadow-sky-500/20">
-                <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <div className="hd-border flex h-10 w-10 rotate-[-3deg] items-center justify-center bg-white text-[var(--text-blue)] hd-shadow">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -52,14 +52,14 @@ export default async function PlayPage({ params }: PlayPageProps) {
                   />
                 </svg>
               </div>
-              <span className="text-sm font-bold uppercase tracking-wider text-white">{SITE.name}</span>
+              <span className="text-sm font-bold uppercase tracking-wider text-[var(--text-main)]">{SITE.name}</span>
             </Link>
 
-            <span className="hidden h-6 w-px bg-white/10 sm:block" />
+            <span className="hidden h-6 border-l-2 border-dashed border-gray-400 sm:block" />
 
             <Link
               href={`/s/${simulation.slug}`}
-              className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-white/20 hover:text-white"
+              className="hd-border flex shrink-0 items-center gap-1.5 bg-white px-3 py-1.5 text-xs font-bold text-[var(--text-main)] transition hover:bg-[var(--box-yellow-bg)]"
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -68,7 +68,7 @@ export default async function PlayPage({ params }: PlayPageProps) {
             </Link>
 
             <div className="min-w-0">
-              <h1 className="truncate text-sm font-bold text-white">{simulation.title}</h1>
+              <h1 className="truncate text-sm font-bold text-[var(--text-main)]">{simulation.title}</h1>
               <div className="mt-0.5 flex flex-wrap gap-1.5">
                 <span
                   className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${CLOUD_BADGE_CLASSES[simulation.cloud]}`}
@@ -97,7 +97,7 @@ export default async function PlayPage({ params }: PlayPageProps) {
               href={simulation.htmlPath}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-sky-500/50 hover:text-sky-300"
+              className="hd-border-alt flex items-center gap-1.5 bg-white px-3 py-1.5 text-xs font-bold text-[var(--text-main)] transition hover:bg-[var(--box-blue-bg)]"
             >
               <span className="hidden sm:inline">Open in new tab</span>
               <span className="sm:hidden">New tab</span>
@@ -114,7 +114,7 @@ export default async function PlayPage({ params }: PlayPageProps) {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-[1600px] min-h-0 flex-1 flex-col p-3 sm:p-4">
+      <main className="mx-auto flex w-full min-h-0 flex-1 flex-col p-3 sm:p-4">
         <SimulationPlayer
           slug={simulation.slug}
           htmlPath={simulation.htmlPath}

@@ -4,6 +4,7 @@ import type { Cloud, Difficulty, Domain } from "@/lib/types";
 import { CLOUD_LABELS, DIFFICULTY_LABELS, DOMAIN_LABELS } from "@/lib/types";
 import type { FilterOptions } from "@/lib/catalog";
 import { Select } from "@/components/ui/Select";
+import { SketchOverlay } from "@/components/SketchOverlay";
 
 interface FilterBarProps {
   query: string;
@@ -46,10 +47,11 @@ export function FilterBar({
   ];
 
   return (
-    <div className="glass-card flex flex-col gap-3 p-4 shadow-xl shadow-black/10 sm:flex-row sm:items-center">
+    <div className="relative flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+      <SketchOverlay fill="rgba(255, 193, 83, 0.16)" hachureGap={10} />
       <div className="relative flex-1">
         <svg
-          className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+          className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -66,7 +68,7 @@ export function FilterBar({
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
           placeholder="Search by name, description, or tag..."
-          className="w-full rounded-full border border-white/10 bg-white/[0.04] py-2 pl-10 pr-3 text-sm text-white placeholder:text-slate-500 transition focus:border-sky-500/60 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+          className="w-full rounded-full border border-[var(--ink-soft)] bg-white/75 py-2 pl-10 pr-3 text-sm text-[var(--text-main)] placeholder:text-gray-500 transition focus:border-[var(--text-blue)] focus:outline-none focus:ring-2 focus:ring-[var(--box-blue-border)]"
         />
       </div>
 
@@ -91,7 +93,7 @@ export function FilterBar({
         />
       </div>
 
-      <span className="shrink-0 text-xs text-slate-500">
+      <span className="shrink-0 text-xs text-gray-600">
         {resultCount} {resultCount === 1 ? "result" : "results"}
       </span>
     </div>

@@ -5,21 +5,19 @@
 export function HeroTopology() {
   return (
     <div className="relative mx-auto w-full max-w-lg lg:max-w-none">
-      {/* Glow phía sau panel */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -inset-6 rounded-[2rem] bg-gradient-to-br from-sky-500/20 via-purple-500/10 to-orange-500/10 blur-2xl"
+        className="pointer-events-none absolute -inset-4 rotate-[-1deg] rounded-[2rem] bg-[var(--box-yellow-bg)] opacity-70"
       />
 
-      <div className="glass-card relative overflow-hidden shadow-2xl shadow-sky-950/40">
-        {/* Chrome giả lập cửa sổ simulator */}
-        <div className="flex items-center justify-between border-b border-white/5 px-4 py-2.5">
+      <div className="relative overflow-hidden bg-white hd-border-soft hd-shadow">
+        <div className="flex items-center justify-between border-b-2 border-dashed border-gray-300 bg-[var(--box-yellow-bg)] px-4 py-2.5">
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-red-400/70" />
             <span className="h-2.5 w-2.5 rounded-full bg-amber-400/70" />
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/70" />
           </div>
-          <span className="font-mono text-[10px] tracking-wide text-slate-500">
+          <span className="font-mono text-[10px] tracking-wide text-gray-600">
             topology · live preview
           </span>
           <div className="flex items-center gap-1.5">
@@ -27,21 +25,21 @@ export function HeroTopology() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
             </span>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-green)]">
               Active
             </span>
           </div>
         </div>
 
         {/* Canvas topology */}
-        <div className="relative aspect-[5/4] bg-gradient-to-b from-slate-950/40 to-slate-950/80 p-4 sm:p-6">
+        <div className="relative aspect-[5/4] bg-[var(--bg-paper)] p-4 sm:p-6">
           {/* Grid nội bộ nhẹ */}
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0 opacity-40"
             style={{
               backgroundImage:
-                "radial-gradient(circle at 1px 1px, rgba(148,163,184,0.12) 1px, transparent 0)",
+                "radial-gradient(circle at 1px 1px, rgba(51,51,51,0.16) 1px, transparent 0)",
               backgroundSize: "18px 18px",
             }}
           />
@@ -319,28 +317,28 @@ export function HeroTopology() {
 
           {/* Floating chips góc dưới */}
           <div className="absolute bottom-3 left-3 flex flex-wrap gap-1.5">
-            <span className="rounded-full border border-orange-400/30 bg-orange-400/10 px-2 py-0.5 text-[9px] font-mono font-bold text-orange-300">
+            <span className="rounded-full border border-[var(--box-orange-border)] bg-[var(--box-orange-bg)] px-2 py-0.5 text-[9px] font-mono font-bold text-[var(--text-main)]">
               Private VIF
             </span>
-            <span className="rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-[9px] font-mono font-bold text-sky-300">
+            <span className="rounded-full border border-[var(--box-blue-border)] bg-[var(--box-blue-bg)] px-2 py-0.5 text-[9px] font-mono font-bold text-[var(--text-main)]">
               BGP
             </span>
-            <span className="rounded-full border border-purple-400/30 bg-purple-400/10 px-2 py-0.5 text-[9px] font-mono font-bold text-purple-300">
+            <span className="rounded-full border border-[var(--box-purple-border)] bg-[var(--box-purple-bg)] px-2 py-0.5 text-[9px] font-mono font-bold text-[var(--text-main)]">
               Transit VIF
             </span>
           </div>
         </div>
 
         {/* Footer metrics giả lập */}
-        <div className="grid grid-cols-3 gap-px border-t border-white/5 bg-white/[0.02]">
+        <div className="grid grid-cols-3 gap-px border-t-2 border-dashed border-gray-300 bg-white">
           {[
             { label: "Latency", value: "2.1 ms" },
             { label: "Routes", value: "48" },
             { label: "VIFs", value: "3" },
           ].map((metric) => (
             <div key={metric.label} className="px-3 py-2.5 text-center">
-              <div className="text-[9px] uppercase tracking-wider text-slate-500">{metric.label}</div>
-              <div className="mt-0.5 font-mono text-xs font-bold text-slate-200">{metric.value}</div>
+              <div className="text-[9px] uppercase tracking-wider text-gray-600">{metric.label}</div>
+              <div className="mt-0.5 font-mono text-xs font-bold text-[var(--text-main)]">{metric.value}</div>
             </div>
           ))}
         </div>

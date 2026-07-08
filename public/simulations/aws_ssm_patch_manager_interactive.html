@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS SSM Patch Manager — Staggered Windows Patching</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pangolin&family=Klee+One:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg-paper:#fdfaf3; --grid-line:#efede7; --grid-line-vertical:#f0ebe1; --text-main:#333333; --box-yellow-bg:#fffcf0; --box-blue-bg:#f0f7fd; --box-green-bg:#f0fdf4; --box-orange-bg:#fff5e6; }
+        body { font-family:'Pangolin','Klee One',cursive,sans-serif!important; background-color:var(--bg-paper)!important; color:var(--text-main)!important; background-image:linear-gradient(var(--grid-line) 1px,transparent 1px),linear-gradient(90deg,var(--grid-line-vertical) 1px,transparent 1px)!important; background-size:20px 20px!important; }
+        .bg-slate-950,.bg-slate-900,.bg-slate-900\/90,.bg-slate-900\/80,.bg-slate-900\/60,.bg-slate-950\/70,.bg-slate-950\/50,.bg-slate-800,.bg-slate-800\/30,.bg-slate-800\/20 { background-color:rgba(255,255,255,.86)!important; }
+        .text-white,.text-slate-100,.text-slate-200,.text-slate-300 { color:var(--text-main)!important; }
+        .text-slate-400,.text-slate-500 { color:#666!important; }
+        .border-slate-800,.border-slate-700,.border-white\/10,.border-white\/5 { border-color:var(--text-main)!important; border-width:2px!important; }
+        .rounded-xl,.rounded-2xl,.rounded-lg { border-radius:10px 15px 8px 12px/12px 8px 15px 10px!important; }
+        .shadow-xl,.shadow-2xl,.shadow-lg { box-shadow:3px 3px 0 rgba(0,0,0,.1)!important; }
+        @keyframes dash { to { stroke-dashoffset: -40; } }
+        .active-route { stroke-dasharray: 10 5; animation: dash 0.8s linear infinite; }
+        .glow-orange { filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.85)); }
+        .glow-blue { filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.85)); }
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image:
+                linear-gradient(to right, rgba(30, 41, 59, 0.25) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(30, 41, 59, 0.25) 1px, transparent 1px);
+        }
+        #svg-container { cursor: grab; }
+        #svg-container:active { cursor: grabbing; }
+        #zoom-pan-group { transition: transform 0.05s ease-out; transform-origin: 0 0; }
+        .interactive-node { cursor: pointer; transition: opacity 0.35s ease; }
+        .interactive-node:hover [data-role="node-bg"] { stroke: #fb923c; stroke-width: 2.5; }
+        .node-selected [data-role="node-bg"] { stroke: #fb923c; stroke-width: 3; filter: drop-shadow(0 0 6px rgba(251, 146, 60, 0.5)); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    
+
+    /* Sketchnote normalization: remove legacy dark dashboard surfaces. */
+    html { background: var(--bg-paper) !important; color: var(--text-main) !important; }
+    body, main, header, aside, section { color: var(--text-main) !important; }
+    [class*="bg-sky-950"], [class*="bg-emerald-950"], [class*="bg-orange-950"], [class*="bg-violet-950"],
+    [class*="bg-amber-950"], [class*="bg-red-950"], [class*="bg-indigo"], [class*="bg-purple-950"],
+    [class*="bg-cyan-950"], [class*="bg-rose-950"], [class*="bg-[#"], [class*="radial-gradient"],
+    [class*="from-slate"], [class*="to-slate"], [class*="via-slate"] {
+      background: transparent !important;
+      background-color: transparent !important;
+      background-image: none !important;
+    }
+    [class*="bg-sky-500"], [class*="bg-cyan-500"], [class*="bg-blue-600"] { background-color: #e8f0fe !important; color: var(--text-main) !important; }
+    [class*="bg-orange-500"], [class*="bg-amber-500"] { background-color: #fff5e6 !important; color: var(--text-main) !important; }
+    [class*="bg-emerald-500"], [class*="bg-green-500"] { background-color: #f0fdf4 !important; color: var(--text-main) !important; }
+    [class*="text-sky"], [class*="text-cyan"], [class*="text-blue"], [class*="text-indigo"], [class*="text-purple"],
+    [class*="text-violet"], [class*="text-orange"], [class*="text-amber"], [class*="text-emerald"], [class*="text-green"], [class*="text-red"], [class*="text-rose"] {
+      color: var(--text-main) !important;
+    }
+    [class*="border-sky"], [class*="border-cyan"], [class*="border-blue"], [class*="border-orange"], [class*="border-amber"],
+    [class*="border-emerald"], [class*="border-green"], [class*="border-violet"], [class*="border-purple"], [class*="border-red"], [class*="border-rose"] {
+      border-color: #9f9488 !important;
+    }
+    aside, header, .node, [data-component], [data-node], [class*="scenario-btn"], [class*="mode-btn"], [class*="step-btn"] {
+      background-color: rgba(255,255,255,.72) !important;
+      border-color: #9f9488 !important;
+      box-shadow: 2px 2px 0 rgba(109,98,87,.12) !important;
+    }
+    section[class*="relative"], #svg-container, #svg-container-wrapper {
+      background-color: rgba(253,250,243,.78) !important;
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-vertical) 1px, transparent 1px) !important;
+      background-size: 20px 20px !important;
+    }
+    svg rect[fill="#082f49"], svg rect[fill="#052e16"], svg rect[fill="#0f172a"], svg rect[fill="#111827"] { fill: #f0f7fd !important; fill-opacity: .82 !important; }
+    svg rect[fill="#431407"], svg rect[fill="#7c2d12"] { fill: #fff5e6 !important; fill-opacity: .84 !important; }
+    svg rect[fill="#312e81"], svg rect[fill="#581c87"], svg rect[fill="#2e1065"] { fill: #f4f0ff !important; fill-opacity: .84 !important; }
+    svg rect[fill="#064e3b"], svg rect[fill="#052e16"] { fill: #f0fdf4 !important; fill-opacity: .84 !important; }
+    svg text { fill: var(--text-main) !important; }
+    pre, code { background: #fffaf0 !important; color: var(--text-main) !important; border-color: #e6d38e !important; }
+    ::-webkit-scrollbar-thumb { background: #c9bba8 !important; }
+
+
+    /* System-design visualizer line grammar on top of sketchnote theme. */
+    svg path[id*="base"], svg path[id*="path-"][id*="base"] {
+      stroke: #b9afa3 !important;
+      stroke-width: 2.25 !important;
+      stroke-linecap: round !important;
+      opacity: .78 !important;
+      stroke-dasharray: 7 7 !important;
+      filter: none !important;
+    }
+    svg path[id*="inner"] {
+      stroke-width: 0 !important;
+      opacity: 0 !important;
+    }
+    svg path[id*="active"], svg path.active-route {
+      stroke-width: 3 !important;
+      stroke-linecap: round !important;
+      stroke-dasharray: 9 6 !important;
+      opacity: .95 !important;
+      filter: none !important;
+    }
+    svg path:not([id*="base"]):not([id*="inner"]):not([id*="active"]).active-route {
+      stroke-width: 3 !important;
+    }
+    svg marker polygon { fill: currentColor; }
+    svg text[id*="label"], svg text {
+      paint-order: stroke !important;
+      stroke: rgba(253,250,243,.9) !important;
+      stroke-width: 3px !important;
+      stroke-linejoin: round !important;
+      font-weight: 700 !important;
+    }
+    svg rect {
+      stroke-width: 1.5 !important;
+      rx: 12 !important;
+    }
+    .node, [data-component], [data-node] {
+      min-height: 76px;
+      border-width: 1.5px !important;
+      background-color: rgba(255,255,255,.84) !important;
+    }
+    .node img, [data-component] img, [data-node] img {
+      filter: saturate(.85) contrast(.95);
+    }
+    .node.active, [data-component].active, [data-node].active {
+      outline: 2px dashed #4fa3b8 !important;
+      outline-offset: 3px !important;
+      box-shadow: 3px 3px 0 rgba(79,163,184,.16) !important;
+    }
+
+
+    /* FINAL GLOBAL SIMULATION STYLE: sketchnote shell + system-design lines. */
+    :root {
+      --sim-paper: #fdfaf3;
+      --sim-ink: #333333;
+      --sim-muted: #6b6258;
+      --sim-line: #9f9488;
+      --sim-blue: #1f9bb4;
+      --sim-teal: #16a394;
+      --sim-yellow: #d4a514;
+      --sim-orange: #e1782f;
+      --sim-green: #2f8f5b;
+      --sim-red: #c94c4c;
+      --sim-blue-fill: rgba(31,155,180,.12);
+      --sim-yellow-fill: rgba(245,196,72,.16);
+      --sim-green-fill: rgba(47,143,91,.13);
+      --sim-orange-fill: rgba(225,120,47,.13);
+      --sim-purple-fill: rgba(137,112,190,.12);
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-vertical) 1px, transparent 1px),
+        radial-gradient(45rem 26rem at 20% 10%, rgba(245,196,72,.12), transparent 62%),
+        radial-gradient(38rem 24rem at 80% 80%, rgba(31,155,180,.10), transparent 60%);
+      background-size: 20px 20px, 20px 20px, auto, auto;
+      pointer-events: none;
+    }
+    header, aside, section, [class*="rounded"], [class*="border"] {
+      border-color: var(--sim-line) !important;
+    }
+    header, aside, main > section, .node, [data-component], [data-node], [class*="scenario-btn"], [class*="mode-btn"], [class*="step-btn"], [class*="service-card"] {
+      color: var(--sim-ink) !important;
+      background: rgba(255,255,255,.68) !important;
+      box-shadow: 2px 2px 0 rgba(109,98,87,.12) !important;
+    }
+    main > section, #svg-container, #svg-container-wrapper {
+      background:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-vertical) 1px, transparent 1px),
+        rgba(253,250,243,.84) !important;
+      background-size: 20px 20px, 20px 20px, auto !important;
+    }
+    body [class*="bg-[radial-gradient"], body [class*="from-slate"], body [class*="to-slate"], body [class*="via-slate"], body [class*="bg-slate"], body [class*="bg-gray-9"], body [class*="bg-black"] {
+      background: transparent !important;
+      background-color: transparent !important;
+      background-image: none !important;
+    }
+    body [class*="text-slate"], body [class*="text-white"], body [class*="text-gray-1"], body [class*="text-gray-2"] { color: var(--sim-ink) !important; }
+    body [class*="text-sky"], body [class*="text-cyan"], body [class*="text-blue"] { color: var(--sim-blue) !important; }
+    body [class*="text-emerald"], body [class*="text-green"] { color: var(--sim-green) !important; }
+    body [class*="text-orange"], body [class*="text-amber"] { color: var(--sim-orange) !important; }
+    body [class*="text-red"], body [class*="text-rose"] { color: var(--sim-red) !important; }
+    body [class*="text-violet"], body [class*="text-purple"], body [class*="text-indigo"] { color: #7258a7 !important; }
+    svg rect[fill="#020617"], svg rect[fill="#030712"], svg rect[fill="#0f172a"], svg rect[fill="#111827"], svg rect[fill="#1e293b"], svg rect[fill="#082f49"], svg rect[fill="#052e16"], svg rect[fill="#431407"], svg rect[fill="#312e81"], svg rect[fill="#581c87"], svg rect[fill="#064e3b"] {
+      fill: rgba(255,255,255,.58) !important;
+      stroke: var(--sim-line) !important;
+      fill-opacity: 1 !important;
+    }
+    svg rect[stroke="#0c4a6e"], svg rect[stroke="#14532d"], svg rect[stroke="#9a3412"], svg rect[stroke="#1e293b"], svg rect[stroke="#0f766e"] {
+      stroke: var(--sim-line) !important;
+    }
+    svg path[id*="base"], svg path[id*="inner"] {
+      stroke: var(--sim-line) !important;
+      stroke-width: 2 !important;
+      stroke-dasharray: 7 7 !important;
+      opacity: .75 !important;
+    }
+    svg path[id*="inner"] { opacity: 0 !important; }
+    svg path[id*="active"], svg path.active-route {
+      stroke-width: 3 !important;
+      stroke-dasharray: 9 6 !important;
+      filter: none !important;
+    }
+    svg text {
+      fill: var(--sim-ink) !important;
+      stroke: rgba(253,250,243,.92) !important;
+      stroke-width: 3px !important;
+      paint-order: stroke !important;
+    }
+    .node, [data-component], [data-node] {
+      background: rgba(255,255,255,.82) !important;
+      border: 1.5px solid var(--sim-line) !important;
+    }
+    .node.active, [data-component].active, [data-node].active {
+      outline: 2px dashed var(--sim-blue) !important;
+      outline-offset: 3px !important;
+    }
+
+
+    /* FINAL COLORFUL SKETCHNOTE FILL: avoid plain-white simulator panels. */
+    header {
+      background: linear-gradient(90deg, rgba(244,240,255,.92), rgba(255,252,240,.9)) !important;
+    }
+    aside:first-of-type, main > aside:first-child, .left-panel {
+      background: linear-gradient(180deg, rgba(255,252,240,.94), rgba(244,240,255,.72)) !important;
+    }
+    aside:last-of-type, main > aside:last-child, .right-panel {
+      background: linear-gradient(180deg, rgba(240,247,253,.94), rgba(232,240,254,.72)) !important;
+    }
+    main > section, #svg-container, #svg-container-wrapper {
+      background:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-vertical) 1px, transparent 1px),
+        linear-gradient(135deg, rgba(240,247,253,.78), rgba(255,252,240,.72) 45%, rgba(240,253,244,.62)) !important;
+      background-size: 20px 20px, 20px 20px, auto !important;
+    }
+    [class*="step-btn"], [class*="scenario-btn"], [class*="mode-btn"] {
+      background: rgba(255,248,214,.88) !important;
+    }
+    [class*="step-btn"]:nth-child(2n), [class*="scenario-btn"]:nth-child(2n), [class*="mode-btn"]:nth-child(2n) {
+      background: rgba(240,247,253,.88) !important;
+    }
+    [class*="step-btn"]:nth-child(3n), [class*="scenario-btn"]:nth-child(3n), [class*="mode-btn"]:nth-child(3n) {
+      background: rgba(240,253,244,.88) !important;
+    }
+    .node, [data-component], [data-node] {
+      background: rgba(240,247,253,.9) !important;
+    }
+    .node:nth-of-type(2n), [data-component]:nth-of-type(2n), [data-node]:nth-of-type(2n) {
+      background: rgba(255,245,230,.9) !important;
+    }
+    .node:nth-of-type(3n), [data-component]:nth-of-type(3n), [data-node]:nth-of-type(3n) {
+      background: rgba(240,253,244,.9) !important;
+    }
+    .node:nth-of-type(4n), [data-component]:nth-of-type(4n), [data-node]:nth-of-type(4n) {
+      background: rgba(244,240,255,.9) !important;
+    }
+    [class*="bg-amber"], [class*="bg-yellow"] { background-color: rgba(255,248,214,.9) !important; }
+    [class*="bg-sky"], [class*="bg-cyan"], [class*="bg-blue"] { background-color: rgba(240,247,253,.9) !important; }
+    [class*="bg-emerald"], [class*="bg-green"] { background-color: rgba(240,253,244,.9) !important; }
+    [class*="bg-orange"] { background-color: rgba(255,245,230,.9) !important; }
+    [class*="bg-violet"], [class*="bg-purple"], [class*="bg-indigo"] { background-color: rgba(244,240,255,.9) !important; }
+    [class*="bg-red"], [class*="bg-rose"] { background-color: rgba(253,234,234,.9) !important; }
+    svg rect[fill], svg path[fill]:not([fill="none"]) {
+      fill-opacity: .86 !important;
+    }
+    svg rect:nth-of-type(4n+1) { fill: #f0f7fd !important; }
+    svg rect:nth-of-type(4n+2) { fill: #fff5e6 !important; }
+    svg rect:nth-of-type(4n+3) { fill: #f0fdf4 !important; }
+    svg rect:nth-of-type(4n+4) { fill: #f4f0ff !important; }
+    .section-header, h2, h3 {
+      text-shadow: 1px 1px 0 rgba(255,255,255,.8);
+    }
+</style>
+</head>
+<body class="h-full bg-slate-950 text-slate-100 flex flex-col font-sans antialiased overflow-hidden">
+
+    <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur-md px-6 py-3 flex items-center gap-4 z-20 shrink-0">
+        <div class="h-11 w-11 rounded-xl bg-slate-950 border border-slate-700 flex items-center justify-center p-2">
+            <img src="/icons/aws/services/management-tools/aws-systems-manager.svg" alt="" class="h-7 w-7" />
+        </div>
+        <div>
+            <h1 class="text-base font-bold tracking-wide text-white">AWS SSM Patch Manager — Staggered Patching</h1>
+            <p class="text-[11px] text-slate-400 mt-0.5">Patch Groups + Maintenance Windows không trùng nhau · Canvas zoom/pan</p>
+        </div>
+    </header>
+
+    <main class="flex-1 flex overflow-hidden p-4 gap-4 min-h-0">
+
+        <!-- LEFT: Steps -->
+        <aside class="w-[360px] shrink-0 flex flex-col bg-slate-900/80 border border-slate-800 rounded-xl shadow-xl overflow-hidden">
+            <div class="p-4 border-b border-slate-800 shrink-0">
+                <span class="text-[10px] font-bold text-orange-400 uppercase tracking-widest">Lifecycle walkthrough</span>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4 min-h-0">
+                <div id="progress-bar" class="flex gap-0.5 shrink-0"></div>
+                <span id="step-counter" class="text-[10px] font-bold text-orange-400 uppercase tracking-widest">Bước 1</span>
+                <h2 id="step-title" class="text-lg font-bold text-white leading-snug">Tiêu đề bước</h2>
+                <p id="step-description" class="text-slate-300 text-[13px] leading-relaxed">Mô tả bước...</p>
+                <div class="bg-blue-950/40 border border-blue-800/60 rounded-xl p-3 shrink-0">
+                    <p id="step-insight" class="text-[12px] text-blue-100 leading-relaxed font-medium">Insight...</p>
+                </div>
+                <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3 shrink-0">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Fleet capacity online</span>
+                        <span id="uptime-value" class="text-sm font-black text-emerald-400">100%</span>
+                    </div>
+                    <div class="h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div id="uptime-bar" class="h-full bg-emerald-500 transition-all duration-700 rounded-full" style="width:100%"></div>
+                    </div>
+                    <p id="uptime-caption" class="text-[10px] text-slate-500 mt-2">Tất cả instances đang phục vụ traffic.</p>
+                </div>
+            </div>
+            <div class="p-4 border-t border-slate-800 flex gap-2 shrink-0">
+                <button id="btn-prev" class="px-4 py-2 rounded-lg font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 transition text-sm">Trở lại</button>
+                <button id="btn-next" class="flex-1 px-4 py-2 rounded-lg font-medium text-white bg-orange-600 hover:bg-orange-500 disabled:opacity-40 transition text-sm shadow-lg shadow-orange-900/30">Tiếp theo</button>
+            </div>
+        </aside>
+
+        <!-- CENTER: Zoom/Pan Canvas -->
+        <section class="flex-1 min-w-0 bg-slate-900/60 rounded-xl border border-slate-800 relative overflow-hidden shadow-2xl bg-grid" id="canvas-wrapper">
+            <div class="absolute top-3 left-4 z-10 text-[10px] font-bold tracking-[0.18em] uppercase text-slate-500 pointer-events-none">
+                Patch Manager topology canvas · kéo để pan · scroll để zoom
+            </div>
+            <div class="absolute top-3 right-3 z-10 flex flex-col gap-1.5 bg-slate-900/90 p-1.5 rounded-lg border border-slate-700 backdrop-blur-md">
+                <button data-action="zoom" data-delta="0.1" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded text-slate-300 transition" title="Zoom In">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m6-6H6"/></svg>
+                </button>
+                <button data-action="zoom" data-delta="-0.1" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded text-slate-300 transition" title="Zoom Out">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14"/></svg>
+                </button>
+                <button data-action="reset-zoom" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded text-slate-300 text-[9px] font-bold transition" title="Reset">1:1</button>
+            </div>
+
+            <div id="svg-container" class="absolute inset-0 overflow-hidden">
+                <svg id="topo-svg" class="w-full h-full select-none" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g id="zoom-pan-group">
+                        <defs>
+                            <marker id="arrow-orange" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                                <polygon points="0 0, 8 3, 0 6" fill="#f97316"/>
+                            </marker>
+                            <marker id="arrow-blue" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                                <polygon points="0 0, 8 3, 0 6" fill="#3b82f6"/>
+                            </marker>
+                        </defs>
+
+                        <!-- FLOW PATHS -->
+                        <path id="path-admin-run-base" d="M 640 118 L 315 195" stroke="#334155" stroke-width="4" fill="none" opacity="0.5"/>
+                        <path id="path-admin-run-active" d="M 640 118 L 315 195" stroke="#f97316" stroke-width="3" fill="none" class="hidden glow-orange active-route" marker-end="url(#arrow-orange)"/>
+                        <path id="path-run-pm-base" d="M 315 335 L 315 455" stroke="#334155" stroke-width="4" fill="none" opacity="0.5"/>
+                        <path id="path-run-pm-active" d="M 315 335 L 315 455" stroke="#3b82f6" stroke-width="3" fill="none" class="hidden glow-blue active-route" marker-end="url(#arrow-blue)"/>
+                        <path id="path-pm-ec2-base" d="M 640 455 L 640 395" stroke="#334155" stroke-width="12" stroke-linecap="round" fill="none" opacity="0.35"/>
+                        <path id="path-pm-ec2-inner" d="M 640 455 L 640 395" stroke="#1e3a5f" stroke-width="7" stroke-linecap="round" fill="none" opacity="0.5"/>
+                        <path id="path-pm-ec2-active" d="M 640 455 L 640 395" stroke="#3b82f6" stroke-width="3" fill="none" class="hidden glow-blue active-route"/>
+                        <text id="label-admin-run" x="480" y="148" fill="#fb923c" font-size="10" font-weight="700" text-anchor="middle" opacity="0">Schedule task</text>
+                        <text id="label-run-pm" x="340" y="400" fill="#60a5fa" font-size="10" font-weight="700" opacity="0">AWS-RunPatchBaseline</text>
+                        <text id="label-pm-ec2" x="660" y="430" fill="#60a5fa" font-size="10" font-weight="700" opacity="0">Patch execution</text>
+                        <circle id="anim-packet-run" r="5" fill="#fff" stroke="#f97316" stroke-width="2" style="display:none" class="glow-orange"/>
+                        <circle id="anim-packet-pm" r="5" fill="#fff" stroke="#3b82f6" stroke-width="2" style="display:none" class="glow-blue"/>
+
+                        <!-- ① ADMIN ZONE -->
+                        <g id="zone-admin" data-component="ssm_console" class="interactive-node">
+                            <rect data-role="node-bg" x="40" y="28" width="1200" height="88" rx="12" fill="#0f172a" stroke="#334155" stroke-width="2"/>
+                            <text x="640" y="52" fill="#64748b" font-size="10" font-weight="700" text-anchor="middle" letter-spacing="1">① ADMIN / AUTOMATION</text>
+                            <image href="/icons/aws/services/management-tools/aws-systems-manager.svg" x="500" y="58" width="28" height="28"/>
+                            <text x="540" y="76" fill="#e2e8f0" font-size="12" font-weight="700">SSM Console</text>
+                            <text x="660" y="76" fill="#94a3b8" font-size="11" font-weight="600">CLI · SDK · PowerShell Toolkit</text>
+                            <text id="admin-active-badge" x="900" y="76" fill="#fb923c" font-size="9" font-weight="700" opacity="0">● SCHEDULING</text>
+                        </g>
+
+                        <!-- MAINTENANCE WINDOWS -->
+                        <g id="node-mw-a" data-component="mw_group_a" class="interactive-node">
+                            <rect data-role="node-bg" x="40" y="140" width="175" height="125" rx="10" fill="#1c1917" stroke="#92400e" stroke-width="1.5" opacity="0.85"/>
+                            <image href="/icons/aws/resources/management-governance/aws-systems-manager-maintenance-windows.svg" x="52" y="152" width="24" height="24"/>
+                            <text x="82" y="168" fill="#fbbf24" font-size="11" font-weight="700">MW-A</text>
+                            <text x="52" y="188" fill="#fcd34d" font-size="9">02:00 – 03:00 UTC</text>
+                            <text x="52" y="202" fill="#a8a29e" font-size="8">Target: Patch Group=Group-A</text>
+                            <rect id="mw-a-status-bg" x="52" y="212" width="72" height="16" rx="4" fill="#334155"/>
+                            <text id="mw-a-status" x="88" y="223" fill="#94a3b8" font-size="8" font-weight="700" text-anchor="middle">SCHEDULED</text>
+                        </g>
+
+                        <g id="node-mw-b" data-component="mw_group_b" class="interactive-node">
+                            <rect data-role="node-bg" x="40" y="280" width="175" height="125" rx="10" fill="#0f172a" stroke="#3730a3" stroke-width="1.5" opacity="0.85"/>
+                            <image href="/icons/aws/resources/management-governance/aws-systems-manager-maintenance-windows.svg" x="52" y="292" width="24" height="24"/>
+                            <text x="82" y="308" fill="#a5b4fc" font-size="11" font-weight="700">MW-B</text>
+                            <text x="52" y="328" fill="#c7d2fe" font-size="9">04:00 – 05:00 UTC</text>
+                            <text x="52" y="342" fill="#94a3b8" font-size="8">Target: Patch Group=Group-B</text>
+                            <rect id="mw-b-status-bg" x="52" y="352" width="72" height="16" rx="4" fill="#334155"/>
+                            <text id="mw-b-status" x="88" y="363" fill="#94a3b8" font-size="8" font-weight="700" text-anchor="middle">SCHEDULED</text>
+                            <text id="mw-nonoverlap-badge" x="52" y="388" fill="#34d399" font-size="8" font-weight="700" opacity="0">NON-OVERLAPPING</text>
+                        </g>
+
+                        <!-- RUN COMMAND -->
+                        <g id="node-run-command" data-component="run_command" class="interactive-node">
+                            <rect data-role="node-bg" x="228" y="195" width="175" height="140" rx="10" fill="#0f172a" stroke="#ea580c" stroke-width="1.5" opacity="0.75"/>
+                            <image href="/icons/aws/resources/management-governance/aws-systems-manager-run-command.svg" x="298" y="215" width="36" height="36"/>
+                            <text x="315" y="268" fill="#f1f5f9" font-size="12" font-weight="700" text-anchor="middle">Run Command</text>
+                            <text id="run-doc-badge" x="315" y="288" fill="#fb923c" font-size="8" font-weight="700" text-anchor="middle" opacity="0">AWS-RunPatchBaseline</text>
+                            <text id="run-target-badge" x="315" y="308" fill="#94a3b8" font-size="7" text-anchor="middle" opacity="0">tag:Patch Group=...</text>
+                        </g>
+
+                        <!-- EC2 FLEET ZONE -->
+                        <rect x="420" y="130" width="820" height="290" rx="12" fill="#0f172a" stroke="#334155" stroke-width="2"/>
+                        <text x="830" y="152" fill="#64748b" font-size="10" font-weight="700" text-anchor="middle" letter-spacing="1">③ EC2 WINDOWS FLEET (TAGGED)</text>
+
+                        <g id="node-group-a" data-component="patch_group_a" class="interactive-node">
+                            <rect data-role="node-bg" id="group-a-bg" x="435" y="165" width="240" height="235" rx="10" fill="#0c1929" stroke="#2563eb" stroke-width="2"/>
+                            <text x="555" y="188" fill="#93c5fd" font-size="10" font-weight="700" text-anchor="middle">Patch Group = Group-A</text>
+                            <text x="555" y="202" fill="#64748b" font-size="8" text-anchor="middle">50 instances · web tier</text>
+                            <image href="/icons/aws/resources/compute/amazon-ec2-instance.svg" x="460" y="215" width="28" height="28"/>
+                            <image href="/icons/aws/resources/compute/amazon-ec2-instance.svg" x="510" y="215" width="28" height="28"/>
+                            <image href="/icons/aws/resources/compute/amazon-ec2-instance.svg" x="560" y="215" width="28" height="28"/>
+                            <image href="/icons/aws/resources/compute/amazon-ec2-instance.svg" x="610" y="215" width="28" height="28"/>
+                            <image href="/icons/aws/resources/compute/amazon-ec2-instance.svg" x="460" y="260" width="28" height="28"/>
+                            <image href="/icons/aws/resources/compute/amazon-ec2-instance.svg" x="510" y="260" width="28" height="28"/>
+                            <text x="580" y="278" fill="#64748b" font-size="9" text-anchor="middle">+44 more</text>
+                            <rect id="group-a-status-bg" x="475" y="365" width="160" height="18" rx="4" fill="#1e293b"/>
+                            <text id="group-a-status" x="555" y="377" fill="#94a3b8" font-size="9" font-weight="700" text-anchor="middle">IDLE</text>
+                        </g>
+
+                        <g id="node-group-default" data-component="patch_group_default" class="interactive-node">
+                            <rect data-role="node-bg" id="group-default-bg" x="695" y="165" width="200" height="235" rx="10" fill="#0f172a" stroke="#475569" stroke-width="1.5" opacity="0.8"/>
+                            <text x="795" y="188" fill="#cbd5e1" font-size="10" font-weight="700" text-anchor="middle">Default (no tag)</text>
+                            <text x="795" y="202" fill="#64748b" font-size="8" text-anchor="middle">OS=Windows only</text>
+                            <image href="/icons/aws/resources/compute/amazon-ec2-instance.svg" x="772" y="250" width="36" height="36" opacity="0.6"/>
+                            <rect id="group-default-status-bg" x="725" y="365" width="140" height="18" rx="4" fill="#1e293b"/>
+                            <text id="group-default-status" x="795" y="377" fill="#94a3b8" font-size="9" font-weight="700" text-anchor="middle">IDLE</text>
+                        </g>
+
+                        <g id="node-group-b" data-component="patch_group_b" class="interactive-node">
+                            <rect data-role="node-bg" id="group-b-bg" x="915" y="165" width="240" height="235" rx="10" fill="#0f172a" stroke="#4f46e5" stroke-width="2"/>
+                            <text x="1035" y="188" fill="#a5b4fc" font-size="10" font-weight="700" text-anchor="middle">Patch Group = Group-B</text>
+                            <text x="1035" y="202" fill="#64748b" font-size="8" text-anchor="middle">50 instances · app tier</text>
+                            <image href="/icons/aws/resources/compute/amazon-ec2-instance.svg" x="940" y="215" width="28" height="28"/>
+                            <image href="/icons/aws/resources/compute/amazon-ec2-instance.svg" x="990" y="215" width="28" height="28"/>
+                            <image href="/icons/aws/resources/compute/amazon-ec2-instance.svg" x="1040" y="215" width="28" height="28"/>
+                            <image href="/icons/aws/resources/compute/amazon-ec2-instance.svg" x="1090" y="215" width="28" height="28"/>
+                            <image href="/icons/aws/resources/compute/amazon-ec2-instance.svg" x="940" y="260" width="28" height="28"/>
+                            <image href="/icons/aws/resources/compute/amazon-ec2-instance.svg" x="990" y="260" width="28" height="28"/>
+                            <text x="1060" y="278" fill="#64748b" font-size="9" text-anchor="middle">+44 more</text>
+                            <rect id="group-b-status-bg" x="955" y="365" width="160" height="18" rx="4" fill="#1e293b"/>
+                            <text id="group-b-status" x="1035" y="377" fill="#94a3b8" font-size="9" font-weight="700" text-anchor="middle">IDLE</text>
+                        </g>
+
+                        <!-- ② PATCH MANAGER -->
+                        <g id="node-patch-manager" data-component="patch_manager" class="interactive-node">
+                            <rect data-role="node-bg" x="40" y="455" width="1200" height="235" rx="12" fill="#0c1a2e" stroke="#1d4ed8" stroke-width="2" opacity="0.8"/>
+                            <text x="640" y="478" fill="#60a5fa" font-size="10" font-weight="700" text-anchor="middle" letter-spacing="1">② PATCH MANAGER — BASELINE LOOKUP</text>
+                            <image href="/icons/aws/resources/management-governance/aws-systems-manager-patch-manager.svg" x="60" y="492" width="36" height="36"/>
+
+                            <!-- Baseline table -->
+                            <rect x="120" y="495" width="720" height="22" fill="#1e3a5f" rx="4"/>
+                            <text x="130" y="509" fill="#93c5fd" font-size="9" font-weight="700">Patch Baseline ID</text>
+                            <text x="400" y="509" fill="#93c5fd" font-size="9" font-weight="700">Default?</text>
+                            <text x="520" y="509" fill="#93c5fd" font-size="9" font-weight="700">Patch Group</text>
+
+                            <g id="baseline-row-default" data-baseline-row="default">
+                                <rect data-role="row-bg" x="120" y="522" width="720" height="24" fill="transparent" rx="2"/>
+                                <text x="130" y="538" fill="#cbd5e1" font-size="9" font-family="monospace">pb-0123456789abcdef0</text>
+                                <text x="400" y="538" fill="#34d399" font-size="8" font-weight="700">Yes</text>
+                                <text x="520" y="538" fill="#94a3b8" font-size="9">Default</text>
+                            </g>
+                            <g id="baseline-row-group-a" data-baseline-row="group-a">
+                                <rect data-role="row-bg" x="120" y="548" width="720" height="24" fill="transparent" rx="2"/>
+                                <text x="130" y="564" fill="#cbd5e1" font-size="9" font-family="monospace">pb-custom-windows-prod</text>
+                                <text x="400" y="564" fill="#64748b" font-size="8" font-weight="700">No</text>
+                                <text x="520" y="564" fill="#60a5fa" font-size="9" font-weight="700">Group-A</text>
+                            </g>
+                            <g id="baseline-row-group-b" data-baseline-row="group-b">
+                                <rect data-role="row-bg" x="120" y="574" width="720" height="24" fill="transparent" rx="2"/>
+                                <text x="130" y="590" fill="#cbd5e1" font-size="9" font-family="monospace">AWS-DefaultPatchBaseline</text>
+                                <text x="400" y="590" fill="#64748b" font-size="8" font-weight="700">No</text>
+                                <text x="520" y="590" fill="#a5b4fc" font-size="9" font-weight="700">Group-B</text>
+                            </g>
+
+                            <g data-component="patch_baseline" class="interactive-node">
+                                <rect data-role="node-bg" x="900" y="500" width="300" height="80" rx="8" fill="#0f172a" stroke="#1e40af" stroke-width="1.5"/>
+                                <text x="1050" y="525" fill="#93c5fd" font-size="10" font-weight="700" text-anchor="middle">AWS-RunPatchBaseline</text>
+                                <text x="1050" y="545" fill="#64748b" font-size="8" text-anchor="middle">Scan → Install → RebootIfNeeded</text>
+                                <text x="1050" y="562" fill="#64748b" font-size="8" text-anchor="middle">SSM document (official)</text>
+                            </g>
+                            <text id="pm-lookup-badge" x="120" y="620" fill="#60a5fa" font-size="9" font-weight="700" opacity="0">LOOKUP: tag Patch Group → baseline</text>
+                        </g>
+                    </g>
+                </svg>
+            </div>
+        </section>
+
+        <!-- RIGHT: Inspector -->
+        <aside class="w-[360px] shrink-0 flex flex-col bg-slate-900/80 border border-slate-800 rounded-xl shadow-xl overflow-hidden min-h-0">
+            <div class="p-4 border-b border-slate-800 shrink-0">
+                <h2 class="text-xs font-bold text-emerald-400 uppercase">Giải phẫu kỹ thuật</h2>
+            </div>
+            <div id="inspector-empty" class="flex-1 flex flex-col items-center justify-center text-center p-6 text-slate-500 min-h-0">
+                <p class="text-xs max-w-[260px] leading-relaxed">Click vào node trên canvas (Patch Manager, Run Command, MW-A/B, EC2 groups) để xem chi tiết kỹ thuật.</p>
+            </div>
+            <div id="inspector-content" class="hidden flex-1 flex-col p-4 gap-3 overflow-y-auto min-h-0">
+                <h3 id="inspector-title" class="text-sm font-bold text-orange-400 border-l-4 border-orange-500 pl-2">Title</h3>
+                <p id="inspector-desc" class="text-slate-300 text-[12px] leading-relaxed bg-slate-950/70 p-3 rounded-xl border border-slate-800">Description</p>
+                <button id="btn-close-inspector" class="text-[11px] font-bold text-slate-500 hover:text-slate-300 underline self-end">Đóng chi tiết</button>
+            </div>
+        </aside>
+    </main>
+
+    <script>
+        const COMPONENT_DETAILS = {
+            ssm_console: {
+                title: "AWS Systems Manager Console / CLI / SDK",
+                description: "Điểm khởi đầu cho admin hoặc automation. Bạn tạo Patch Baseline, đăng ký Patch Group, cấu hình Maintenance Window và gán task AWS-RunPatchBaseline. Pattern chuẩn cho fleet lớn vẫn là Maintenance Windows."
+            },
+            mw_group_a: {
+                title: "Maintenance Window A (Group-A)",
+                description: "Khung giờ 02:00–03:00 UTC chỉ cho phép patch trên instances có tag Patch Group=Group-A. Task bên trong MW chạy document AWS-RunPatchBaseline."
+            },
+            mw_group_b: {
+                title: "Maintenance Window B (Group-B)",
+                description: "Khung giờ 04:00–05:00 UTC, non-overlapping với MW-A. Khi MW-B mở, Group-A đã patched và đang phục vụ traffic."
+            },
+            run_command: {
+                title: "AWS Systems Manager Run Command",
+                description: "Run Command gửi SSM document tới managed instances được target theo tag Patch Group. Document chuẩn: AWS-RunPatchBaseline."
+            },
+            patch_manager: {
+                title: "Patch Manager",
+                description: "Dịch vụ SSM quản lý patch baselines, patch groups, compliance reporting. Tra cứu baseline theo Patch Group tag trước khi cài patch."
+            },
+            patch_baseline: {
+                title: "Patch Baseline & AWS-RunPatchBaseline",
+                description: "Patch Baseline định nghĩa rules approve. Document AWS-RunPatchBaseline: Operation=Scan|Install, RebootOption=RebootIfNeeded."
+            },
+            patch_group_a: {
+                title: "Patch Group A — Web Tier",
+                description: "50 Windows EC2 tag Patch Group=Group-A. Baseline pb-custom-windows-prod. Patch trước trong MW-A."
+            },
+            patch_group_b: {
+                title: "Patch Group B — App Tier",
+                description: "50 Windows EC2 tag Patch Group=Group-B. AWS-DefaultPatchBaseline. Patch trong MW-B sau Group-A."
+            },
+            patch_group_default: {
+                title: "Default Patch Group",
+                description: "Instances chỉ có tag OS=Windows, không có Patch Group tag. Dùng account default baseline."
+            }
+        };
+
+        const ARCHITECTURE_STEPS = [
+            { title: "1. Fleet Windows EC2 & SSM prerequisites", description: "Hàng trăm Windows EC2 đã cài SSM Agent, có IAM instance profile, tag OS=Windows. Admin chia fleet thành Patch Group A (web) và Group B (app).", insight: "Patch Group là tag trên EC2, không phải resource riêng.", states: { admin: "idle", runCommand: "idle", patchManager: "idle", flowAdmin: false, flowRunPm: false, flowPmEc2: false, mwA: "scheduled", mwB: "scheduled", groupA: "idle", groupB: "idle", groupDefault: "idle", uptime: 100, runTarget: "", highlightBaseline: null, activeEc2Group: "a" } },
+            { title: "2. Map Patch Group → Patch Baseline", description: "Đăng ký association: Group-A → custom baseline, Group-B → AWS-DefaultPatchBaseline, Default → account default.", insight: "Bước ② Patch Manager tra cứu baseline theo tag.", states: { admin: "active", runCommand: "idle", patchManager: "lookup", flowAdmin: false, flowRunPm: false, flowPmEc2: false, mwA: "scheduled", mwB: "scheduled", groupA: "idle", groupB: "idle", groupDefault: "idle", uptime: 100, runTarget: "", highlightBaseline: "all", activeEc2Group: "a" } },
+            { title: "3. Hai Maintenance Windows không trùng nhau", description: "MW-A (02:00) target Group-A, MW-B (04:00) target Group-B. Mỗi MW gán AWS-RunPatchBaseline.", insight: "Non-overlapping MW = yêu cầu then chốt tránh reboot đồng loạt.", states: { admin: "active", runCommand: "idle", patchManager: "idle", flowAdmin: false, flowRunPm: false, flowPmEc2: false, mwA: "scheduled", mwB: "scheduled", groupA: "idle", groupB: "idle", groupDefault: "idle", uptime: 100, runTarget: "", highlightBaseline: null, showNonOverlap: true, activeEc2Group: "a" } },
+            { title: "4. MW-A mở — schedule kích hoạt", description: "02:00 UTC, MW-A mở. SSM đăng ký targets tag Patch Group=Group-A.", insight: "MW tự trigger theo cron — không cần admin can thiệp mỗi tháng.", states: { admin: "active", runCommand: "active", patchManager: "idle", flowAdmin: true, flowRunPm: false, flowPmEc2: false, mwA: "open", mwB: "scheduled", groupA: "targeted", groupB: "idle", groupDefault: "idle", uptime: 100, runTarget: "Group-A", highlightBaseline: "group-a", activeEc2Group: "a" } },
+            { title: "5. Run Command → AWS-RunPatchBaseline", description: "Run Command gửi document tới 50 instances Group-A. Patch Manager lookup pb-custom-windows-prod.", insight: "① Admin → ② Patch Manager → ③ EC2 — đúng 3 tầng AWS.", states: { admin: "active", runCommand: "active", patchManager: "lookup", flowAdmin: true, flowRunPm: true, flowPmEc2: false, mwA: "open", mwB: "scheduled", groupA: "scanning", groupB: "idle", groupDefault: "idle", uptime: 100, runTarget: "Group-A", highlightBaseline: "group-a", activeEc2Group: "a" } },
+            { title: "6. Scan & Install — Group-A", description: "Scan missing patches, install KB approved. Group-B và Default không bị ảnh hưởng.", insight: "Compliance: NON_COMPLIANT → INSTALLING.", states: { admin: "idle", runCommand: "active", patchManager: "active", flowAdmin: false, flowRunPm: true, flowPmEc2: true, mwA: "open", mwB: "scheduled", groupA: "installing", groupB: "idle", groupDefault: "idle", uptime: 100, runTarget: "Group-A", highlightBaseline: "group-a", activeEc2Group: "a" } },
+            { title: "7. Reboot Group-A — uptime ~50%", description: "50 instances Group-A reboot. Group-B vẫn online phục vụ traffic.", insight: "Chia Patch Groups để không 100% fleet reboot cùng lúc.", states: { admin: "idle", runCommand: "active", patchManager: "active", flowAdmin: false, flowRunPm: true, flowPmEc2: true, mwA: "open", mwB: "scheduled", groupA: "rebooting", groupB: "idle", groupDefault: "idle", uptime: 50, runTarget: "Group-A", highlightBaseline: "group-a", activeEc2Group: "a" } },
+            { title: "8. MW-B patch Group-B", description: "04:00 UTC — MW-B mở, Group-A đã COMPLIANT. Patch + reboot Group-B.", insight: "Group-A carry traffic khi Group-B reboot.", states: { admin: "active", runCommand: "active", patchManager: "active", flowAdmin: true, flowRunPm: true, flowPmEc2: true, mwA: "closed", mwB: "open", groupA: "patched", groupB: "rebooting", groupDefault: "idle", uptime: 50, runTarget: "Group-B", highlightBaseline: "group-b", activeEc2Group: "b" } },
+            { title: "9. Fleet COMPLIANT", description: "100/100 instances COMPLIANT. Patch tự động, reboot staggered.", insight: "Pattern đúng: Patch Groups + MW non-overlapping + AWS-RunPatchBaseline.", states: { admin: "idle", runCommand: "idle", patchManager: "idle", flowAdmin: false, flowRunPm: false, flowPmEc2: false, mwA: "closed", mwB: "closed", groupA: "patched", groupB: "patched", groupDefault: "patched", uptime: 100, runTarget: "", highlightBaseline: null, activeEc2Group: "a" } }
+        ];
+
+        const GROUP_STYLE = {
+            idle:       { stroke: "#2563eb", statusFill: "#1e293b", statusText: "#94a3b8", label: "IDLE" },
+            targeted:   { stroke: "#d97706", statusFill: "#78350f", statusText: "#fcd34d", label: "TARGETED" },
+            scanning:   { stroke: "#0284c7", statusFill: "#0c4a6e", statusText: "#7dd3fc", label: "SCANNING" },
+            installing: { stroke: "#ea580c", statusFill: "#7c2d12", statusText: "#fdba74", label: "INSTALLING" },
+            rebooting:  { stroke: "#e11d48", statusFill: "#881337", statusText: "#fda4af", label: "REBOOTING" },
+            patched:    { stroke: "#059669", statusFill: "#064e3b", statusText: "#6ee7b7", label: "COMPLIANT" }
+        };
+
+        const MW_STYLE = {
+            scheduled: { statusFill: "#334155", statusText: "#94a3b8", label: "SCHEDULED", ring: false },
+            open:      { statusFill: "#b45309", statusText: "#fef3c7", label: "OPEN", ring: true },
+            closed:    { statusFill: "#475569", statusText: "#cbd5e1", label: "CLOSED", ring: false }
+        };
+
+        const EC2_TARGET_COORDS = {
+            a: { x: 555, y: 395 },
+            b: { x: 1035, y: 395 }
+        };
+
+        let currentStepIndex = 0;
+        let activeComponent = null;
+        let packetAnimFrame = null;
+
+        const DOM = {};
+
+        function $(id) { return document.getElementById(id); }
+
+        function cacheDOM() {
+            DOM.btnPrev = $("btn-prev");
+            DOM.btnNext = $("btn-next");
+            DOM.stepTitle = $("step-title");
+            DOM.stepDescription = $("step-description");
+            DOM.stepInsight = $("step-insight");
+            DOM.stepCounter = $("step-counter");
+            DOM.progressBar = $("progress-bar");
+            DOM.inspectorEmpty = $("inspector-empty");
+            DOM.inspectorContent = $("inspector-content");
+            DOM.inspectorTitle = $("inspector-title");
+            DOM.inspectorDesc = $("inspector-desc");
+            DOM.btnCloseInspector = $("btn-close-inspector");
+            DOM.uptimeValue = $("uptime-value");
+            DOM.uptimeBar = $("uptime-bar");
+            DOM.uptimeCaption = $("uptime-caption");
+            DOM.pathAdminRunActive = $("path-admin-run-active");
+            DOM.pathRunPmActive = $("path-run-pm-active");
+            DOM.pathPmEc2Active = $("path-pm-ec2-active");
+            DOM.labelAdminRun = $("label-admin-run");
+            DOM.labelRunPm = $("label-run-pm");
+            DOM.labelPmEc2 = $("label-pm-ec2");
+            DOM.animPacketRun = $("anim-packet-run");
+            DOM.animPacketPm = $("anim-packet-pm");
+            DOM.adminActiveBadge = $("admin-active-badge");
+            DOM.runDocBadge = $("run-doc-badge");
+            DOM.runTargetBadge = $("run-target-badge");
+            DOM.pmLookupBadge = $("pm-lookup-badge");
+            DOM.mwNonoverlapBadge = $("mw-nonoverlap-badge");
+            DOM.zoneAdmin = $("zone-admin");
+            DOM.nodeRunCommand = $("node-run-command");
+            DOM.nodePatchManager = $("node-patch-manager");
+            DOM.nodeMwA = $("node-mw-a");
+            DOM.nodeMwB = $("node-mw-b");
+            DOM.mwAStatus = $("mw-a-status");
+            DOM.mwBStatus = $("mw-b-status");
+            DOM.mwAStatusBg = $("mw-a-status-bg");
+            DOM.mwBStatusBg = $("mw-b-status-bg");
+            DOM.groupABg = $("group-a-bg");
+            DOM.groupBBg = $("group-b-bg");
+            DOM.groupDefaultBg = $("group-default-bg");
+            DOM.groupAStatus = $("group-a-status");
+            DOM.groupBStatus = $("group-b-status");
+            DOM.groupDefaultStatus = $("group-default-status");
+            DOM.groupAStatusBg = $("group-a-status-bg");
+            DOM.groupBStatusBg = $("group-b-status-bg");
+            DOM.groupDefaultStatusBg = $("group-default-status-bg");
+        }
+
+        function init() {
+            cacheDOM();
+            createProgressBars();
+            bindEvents();
+            initZoomPan();
+            renderStep(0);
+        }
+
+        function createProgressBars() {
+            DOM.progressBar.innerHTML = "";
+            ARCHITECTURE_STEPS.forEach((_, idx) => {
+                const bar = document.createElement("div");
+                bar.className = "h-1 flex-1 rounded-full transition-colors duration-500 bg-slate-800";
+                bar.id = `prog-bar-${idx}`;
+                DOM.progressBar.appendChild(bar);
+            });
+        }
+
+        function bindEvents() {
+            DOM.btnNext.addEventListener("click", () => {
+                if (currentStepIndex < ARCHITECTURE_STEPS.length - 1) {
+                    currentStepIndex++;
+                    renderStep(currentStepIndex);
+                }
+            });
+            DOM.btnPrev.addEventListener("click", () => {
+                if (currentStepIndex > 0) {
+                    currentStepIndex--;
+                    renderStep(currentStepIndex);
+                }
+            });
+            DOM.btnCloseInspector.addEventListener("click", () => selectComponent(null));
+
+            document.addEventListener("click", (e) => {
+                const zoomBtn = e.target.closest("[data-action]");
+                if (zoomBtn) {
+                    const action = zoomBtn.dataset.action;
+                    if (action === "zoom") zoomCanvas(Number(zoomBtn.dataset.delta));
+                    if (action === "reset-zoom") resetZoom();
+                    return;
+                }
+                const node = e.target.closest("[data-component]");
+                if (node) {
+                    e.stopPropagation();
+                    selectComponent(node.getAttribute("data-component"));
+                }
+            });
+        }
+
+        // --- Zoom & Pan ---
+        const svgContainer = () => $("svg-container");
+        const zoomGroup = () => $("zoom-pan-group");
+        let scale = 0.72;
+        let panX = 20;
+        let panY = 10;
+        let isPanning = false;
+        let startX = 0;
+        let startY = 0;
+
+        function applyTransform() {
+            zoomGroup().setAttribute("transform", `translate(${panX}, ${panY}) scale(${scale})`);
+        }
+
+        function zoomCanvas(delta) {
+            scale = Math.max(0.35, Math.min(scale + delta, 2.2));
+            applyTransform();
+        }
+
+        function resetZoom() {
+            scale = 0.72;
+            panX = 20;
+            panY = 10;
+            applyTransform();
+        }
+
+        function initZoomPan() {
+            const container = svgContainer();
+            container.addEventListener("wheel", (e) => {
+                e.preventDefault();
+                zoomCanvas(e.deltaY > 0 ? -0.06 : 0.06);
+            }, { passive: false });
+
+            container.addEventListener("mousedown", (e) => {
+                if (e.target.closest("[data-component]")) return;
+                isPanning = true;
+                startX = e.clientX - panX;
+                startY = e.clientY - panY;
+            });
+
+            window.addEventListener("mousemove", (e) => {
+                if (!isPanning) return;
+                panX = e.clientX - startX;
+                panY = e.clientY - startY;
+                applyTransform();
+            });
+
+            window.addEventListener("mouseup", () => { isPanning = false; });
+            container.addEventListener("mouseleave", () => { isPanning = false; });
+            applyTransform();
+        }
+
+        function selectComponent(compId) {
+            activeComponent = compId;
+            document.querySelectorAll(".interactive-node").forEach(el => {
+                el.classList.toggle("node-selected", el.getAttribute("data-component") === compId);
+            });
+            if (compId && COMPONENT_DETAILS[compId]) {
+                DOM.inspectorEmpty.classList.add("hidden");
+                DOM.inspectorContent.classList.remove("hidden");
+                DOM.inspectorContent.classList.add("flex");
+                DOM.inspectorTitle.textContent = COMPONENT_DETAILS[compId].title;
+                DOM.inspectorDesc.textContent = COMPONENT_DETAILS[compId].description;
+            } else {
+                DOM.inspectorEmpty.classList.remove("hidden");
+                DOM.inspectorContent.classList.add("hidden");
+                DOM.inspectorContent.classList.remove("flex");
+            }
+        }
+
+        function stopPacketAnim() {
+            if (packetAnimFrame) cancelAnimationFrame(packetAnimFrame);
+            packetAnimFrame = null;
+        }
+
+        function animatePacket(pathEl, circleEl, duration) {
+            if (!pathEl || !circleEl) return;
+            circleEl.style.display = "";
+            let start = null;
+            function frame(ts) {
+                if (!start) start = ts;
+                const len = pathEl.getTotalLength();
+                const prog = ((ts - start) % duration) / duration;
+                const pt = pathEl.getPointAtLength(prog * len);
+                circleEl.setAttribute("cx", pt.x);
+                circleEl.setAttribute("cy", pt.y);
+                packetAnimFrame = requestAnimationFrame(frame);
+            }
+            packetAnimFrame = requestAnimationFrame(frame);
+        }
+
+        function updatePmEc2Path(targetKey) {
+            const coord = EC2_TARGET_COORDS[targetKey] || EC2_TARGET_COORDS.a;
+            const d = `M 640 455 L ${coord.x} ${coord.y}`;
+            $("path-pm-ec2-base").setAttribute("d", d);
+            $("path-pm-ec2-inner").setAttribute("d", d);
+            DOM.pathPmEc2Active.setAttribute("d", d);
+            DOM.labelPmEc2.setAttribute("x", (640 + coord.x) / 2 + 20);
+            DOM.labelPmEc2.setAttribute("y", (455 + coord.y) / 2);
+        }
+
+        function applyFlowVisuals(s) {
+            DOM.pathAdminRunActive.classList.toggle("hidden", !s.flowAdmin);
+            DOM.labelAdminRun.setAttribute("opacity", s.flowAdmin ? "1" : "0");
+            DOM.pathRunPmActive.classList.toggle("hidden", !s.flowRunPm);
+            DOM.labelRunPm.setAttribute("opacity", s.flowRunPm ? "1" : "0");
+            DOM.pathPmEc2Active.classList.toggle("hidden", !s.flowPmEc2);
+            DOM.labelPmEc2.setAttribute("opacity", s.flowPmEc2 ? "1" : "0");
+
+            stopPacketAnim();
+            if (s.flowAdmin) animatePacket(DOM.pathAdminRunActive, DOM.animPacketRun, 2200);
+            else DOM.animPacketRun.style.display = "none";
+            if (s.flowRunPm) animatePacket(DOM.pathRunPmActive, DOM.animPacketPm, 2400);
+            else DOM.animPacketPm.style.display = "none";
+        }
+
+        function applyGroupStyle(bgEl, statusEl, statusBgEl, status) {
+            const st = GROUP_STYLE[status] || GROUP_STYLE.idle;
+            bgEl.setAttribute("stroke", st.stroke);
+            bgEl.setAttribute("stroke-width", status === "idle" ? "2" : "2.5");
+            statusBgEl.setAttribute("fill", st.statusFill);
+            statusEl.setAttribute("fill", st.statusText);
+            statusEl.textContent = st.label;
+            bgEl.setAttribute("opacity", status === "rebooting" ? "0.65" : "1");
+        }
+
+        function applyMwStyle(nodeEl, statusEl, statusBgEl, status, isA) {
+            const st = MW_STYLE[status] || MW_STYLE.scheduled;
+            statusBgEl.setAttribute("fill", st.statusFill);
+            statusEl.setAttribute("fill", st.statusText);
+            statusEl.textContent = st.label;
+            const bg = nodeEl.querySelector("[data-role='node-bg']");
+            bg.setAttribute("opacity", st.ring ? "1" : "0.85");
+            bg.setAttribute("stroke-width", st.ring ? "3" : "1.5");
+            if (st.ring) {
+                bg.setAttribute("stroke", isA ? "#f59e0b" : "#818cf8");
+            } else {
+                bg.setAttribute("stroke", isA ? "#92400e" : "#3730a3");
+            }
+        }
+
+        function renderStep(index) {
+            const step = ARCHITECTURE_STEPS[index];
+            const s = step.states;
+
+            DOM.stepCounter.textContent = `Bước ${index + 1} / ${ARCHITECTURE_STEPS.length}`;
+            DOM.stepTitle.textContent = step.title;
+            DOM.stepDescription.textContent = step.description;
+            DOM.stepInsight.textContent = step.insight;
+
+            ARCHITECTURE_STEPS.forEach((_, idx) => {
+                const bar = $(`prog-bar-${idx}`);
+                bar.classList.toggle("bg-orange-500", idx <= index);
+                bar.classList.toggle("bg-slate-800", idx > index);
+            });
+
+            DOM.btnPrev.disabled = index === 0;
+            DOM.btnNext.textContent = index === ARCHITECTURE_STEPS.length - 1 ? "Hoàn tất" : "Tiếp theo";
+            DOM.btnNext.disabled = index === ARCHITECTURE_STEPS.length - 1;
+
+            DOM.uptimeValue.textContent = `${s.uptime}%`;
+            DOM.uptimeBar.style.width = `${s.uptime}%`;
+            DOM.uptimeBar.className = `h-full transition-all duration-700 rounded-full ${s.uptime >= 100 ? "bg-emerald-500" : s.uptime >= 50 ? "bg-amber-500" : "bg-rose-500"}`;
+            DOM.uptimeCaption.textContent = s.uptime >= 100
+                ? "Tất cả instances đang phục vụ traffic."
+                : "~50% fleet online — staggered reboot đang diễn ra.";
+
+            DOM.zoneAdmin.querySelector("[data-role='node-bg']").setAttribute("opacity", s.admin === "active" ? "1" : "0.65");
+            DOM.adminActiveBadge.setAttribute("opacity", s.admin === "active" ? "1" : "0");
+
+            const runBg = DOM.nodeRunCommand.querySelector("[data-role='node-bg']");
+            runBg.setAttribute("opacity", s.runCommand === "active" ? "1" : "0.65");
+            runBg.setAttribute("stroke-width", s.runCommand === "active" ? "3" : "1.5");
+            DOM.runDocBadge.setAttribute("opacity", s.runCommand === "active" ? "1" : "0");
+            DOM.runTargetBadge.setAttribute("opacity", s.runTarget ? "1" : "0");
+            if (s.runTarget) DOM.runTargetBadge.textContent = `tag:Patch Group=${s.runTarget}`;
+
+            const pmBg = DOM.nodePatchManager.querySelector("[data-role='node-bg']");
+            pmBg.setAttribute("opacity", s.patchManager !== "idle" ? "1" : "0.65");
+            pmBg.setAttribute("stroke-width", s.patchManager !== "idle" ? "3" : "2");
+            DOM.pmLookupBadge.setAttribute("opacity", s.patchManager !== "idle" ? "1" : "0");
+
+            applyMwStyle(DOM.nodeMwA, DOM.mwAStatus, DOM.mwAStatusBg, s.mwA, true);
+            applyMwStyle(DOM.nodeMwB, DOM.mwBStatus, DOM.mwBStatusBg, s.mwB, false);
+            DOM.mwNonoverlapBadge.setAttribute("opacity", s.showNonOverlap ? "1" : "0");
+
+            applyGroupStyle(DOM.groupABg, DOM.groupAStatus, DOM.groupAStatusBg, s.groupA);
+            applyGroupStyle(DOM.groupBBg, DOM.groupBStatus, DOM.groupBStatusBg, s.groupB);
+            applyGroupStyle(DOM.groupDefaultBg, DOM.groupDefaultStatus, DOM.groupDefaultStatusBg, s.groupDefault);
+
+            document.querySelectorAll("[data-baseline-row]").forEach(row => {
+                const key = row.getAttribute("data-baseline-row");
+                const highlight = s.highlightBaseline === "all" || s.highlightBaseline === key;
+                row.querySelector("[data-role='row-bg']").setAttribute("fill", highlight ? "#1e3a5f" : "transparent");
+            });
+
+            updatePmEc2Path(s.activeEc2Group || "a");
+            applyFlowVisuals(s);
+
+            if (activeComponent) selectComponent(activeComponent);
+        }
+
+        document.addEventListener("DOMContentLoaded", init);
+    </script>
+</body>
+</html>

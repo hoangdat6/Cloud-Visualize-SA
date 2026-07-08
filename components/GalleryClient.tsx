@@ -76,7 +76,7 @@ export function GalleryClient({ simulations, filterOptions }: GalleryClientProps
       />
 
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-800 py-20 text-center text-slate-500">
+        <div className="glass-card marker-wash marker-wash-yellow flex flex-col items-center justify-center gap-2 py-20 text-center text-gray-600">
           <p className="text-sm">No simulations match your filters.</p>
           <p className="text-xs">Try a different keyword or filter.</p>
         </div>

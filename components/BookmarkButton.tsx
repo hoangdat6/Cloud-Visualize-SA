@@ -2,6 +2,7 @@
 
 import type { MouseEvent } from "react";
 import { useStoredSet } from "@/hooks/useStoredSet";
+import { SketchOverlay } from "@/components/SketchOverlay";
 
 interface BookmarkButtonProps {
   slug: string;
@@ -40,12 +41,17 @@ export function BookmarkButton({ slug, size = "sm" }: BookmarkButtonProps) {
         type="button"
         onClick={handleClick}
         aria-pressed={bookmarked}
-        className={`flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold transition ${
+        className={`relative flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition ${
           bookmarked
-            ? "border-amber-400/60 bg-amber-400/20 text-amber-300"
-            : "border-white/10 bg-white/[0.04] text-slate-300 hover:border-white/20 hover:text-white"
+            ? "bg-transparent text-[var(--text-main)]"
+            : "bg-transparent text-[var(--text-main)]"
         }`}
       >
+        <SketchOverlay
+          fill={bookmarked ? "rgba(255, 193, 83, 0.2)" : "rgba(157, 204, 244, 0.16)"}
+          hachureGap={7}
+          roughness={1.3}
+        />
         {icon}
         {bookmarked ? "Saved" : "Save simulation"}
       </button>
@@ -58,12 +64,17 @@ export function BookmarkButton({ slug, size = "sm" }: BookmarkButtonProps) {
       onClick={handleClick}
       aria-pressed={bookmarked}
       aria-label={bookmarked ? "Remove bookmark" : "Bookmark simulation"}
-      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border backdrop-blur-sm transition ${
+      className={`relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition ${
         bookmarked
-          ? "border-amber-400/60 bg-amber-400/20 text-amber-300"
-          : "border-white/10 bg-slate-950/60 text-slate-400 hover:border-white/25 hover:text-slate-200"
+          ? "bg-transparent text-[var(--text-main)]"
+          : "bg-transparent text-gray-600"
       }`}
     >
+      <SketchOverlay
+        fill={bookmarked ? "rgba(255, 193, 83, 0.22)" : "rgba(255, 255, 255, 0.34)"}
+        hachureGap={6}
+        roughness={1.2}
+      />
       {icon}
     </button>
   );

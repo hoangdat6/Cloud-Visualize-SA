@@ -3,6 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { DetailActions } from "@/components/DetailActions";
+import { SketchOverlay } from "@/components/SketchOverlay";
 import { getAllSlugs, getSimulationBySlug } from "@/lib/catalog";
 import { CLOUD_LABELS, DIFFICULTY_LABELS, DOMAIN_LABELS } from "@/lib/types";
 import {
@@ -58,15 +59,15 @@ export default async function DetailPage({ params }: DetailPageProps) {
   const componentCount = simulation.components?.length ?? 0;
 
   return (
-    <div className="relative flex min-h-full flex-1 flex-col bg-slate-950 bg-grid bg-aurora">
-      <header className="sticky top-0 z-20 bg-slate-950/60 px-6 py-4 backdrop-blur-xl">
+    <div className="relative flex min-h-full flex-1 flex-col bg-[var(--bg-paper)] bg-grid bg-aurora text-[var(--text-main)]">
+      <header className="sticky top-0 z-20 border-b-2 border-dashed border-gray-400 bg-[var(--bg-paper)]/90 px-6 py-4 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <Link
             href="/"
             className="flex items-center gap-3 transition hover:opacity-90"
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-purple-500 shadow-lg shadow-sky-500/20">
-              <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="hd-border flex h-10 w-10 shrink-0 rotate-[-3deg] items-center justify-center bg-white text-[var(--text-blue)] hd-shadow">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -74,11 +75,11 @@ export default async function DetailPage({ params }: DetailPageProps) {
                 />
               </svg>
             </div>
-            <span className="text-sm font-bold uppercase tracking-wider text-white">{SITE.name}</span>
+            <span className="text-sm font-bold uppercase tracking-wider text-[var(--text-main)]">{SITE.name}</span>
           </Link>
           <Link
             href="/"
-            className="flex items-center gap-1.5 text-xs font-medium text-slate-400 transition hover:text-white"
+            className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-blue)] underline decoration-wavy transition hover:text-[var(--text-red)]"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -109,18 +110,18 @@ export default async function DetailPage({ params }: DetailPageProps) {
               </span>
             </div>
 
-            <h1 className="text-3xl font-bold leading-tight text-white sm:text-4xl">
+            <h1 className="text-3xl font-bold leading-tight text-[var(--text-main)] sm:text-4xl">
               {simulation.title}
             </h1>
 
-            <p className="max-w-2xl text-sm leading-relaxed text-slate-400 sm:text-base">
+            <p className="max-w-2xl text-sm leading-relaxed text-gray-700 sm:text-base">
               {simulation.longDescription ?? simulation.description}
             </p>
 
             <div className="flex flex-wrap items-center gap-3 pt-1">
               <Link
                 href={`/s/${simulation.slug}/play`}
-                className="flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-blue-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-sky-500/25 transition hover:shadow-xl hover:shadow-sky-500/30"
+                className="hd-border flex items-center gap-2 bg-[var(--box-green-bg)] px-6 py-3 text-sm font-bold text-[var(--text-main)] hd-shadow transition hover:bg-[var(--box-green-border)]"
               >
                 <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z" />
@@ -134,7 +135,7 @@ export default async function DetailPage({ params }: DetailPageProps) {
               {simulation.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="rounded-full border border-white/5 bg-white/[0.04] px-2.5 py-1 text-[10px] font-mono text-slate-400"
+                  className="rounded-full border border-gray-300 bg-[var(--box-yellow-bg)] px-2.5 py-1 text-[10px] font-mono text-gray-700"
                 >
                   {tag}
                 </span>
@@ -145,7 +146,7 @@ export default async function DetailPage({ params }: DetailPageProps) {
           {/* Preview card */}
           <Link
             href={`/s/${simulation.slug}/play`}
-            className="group relative flex min-h-[240px] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-2xl shadow-black/30 transition hover:border-sky-500/40 hover:shadow-sky-500/10"
+            className="group relative flex min-h-[240px] overflow-hidden bg-white transition hd-border-soft hd-shadow"
           >
             <div
               className={`absolute inset-0 bg-gradient-to-br ${CLOUD_CARD_ACCENT[simulation.cloud]}`}
@@ -159,25 +160,25 @@ export default async function DetailPage({ params }: DetailPageProps) {
               />
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-slate-950/50 backdrop-blur-sm transition group-hover:scale-110 group-hover:border-sky-400/40">
-                  <svg className="h-7 w-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <div className="hd-border flex h-16 w-16 items-center justify-center bg-white transition group-hover:scale-110">
+                  <svg className="h-7 w-7 text-[var(--text-main)]" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z" />
                   </svg>
                 </div>
-                <span className="text-xs font-bold uppercase tracking-widest text-slate-300/80">
+                <span className="section-header">
                   {CLOUD_LABELS[simulation.cloud]} · Interactive
                 </span>
               </div>
             )}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent p-5 pt-12">
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[var(--bg-paper)] via-[var(--bg-paper)]/70 to-transparent p-5 pt-12">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-600">
                     Live preview
                   </p>
-                  <p className="text-sm font-bold text-white">Launch full simulation</p>
+                  <p className="text-sm font-bold text-[var(--text-main)]">Launch full simulation</p>
                 </div>
-                <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur-sm transition group-hover:bg-sky-500 group-hover:border-sky-400">
+                <span className="hd-border flex h-10 w-10 items-center justify-center bg-white text-[var(--text-main)] transition group-hover:bg-[var(--box-blue-bg)]">
                   <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z" />
                   </svg>
@@ -195,11 +196,12 @@ export default async function DetailPage({ params }: DetailPageProps) {
             { label: "Objectives", value: String(objectiveCount) },
             { label: "Components", value: String(componentCount) },
           ].map((stat) => (
-            <div key={stat.label} className="glass-card px-4 py-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            <div key={stat.label} className="relative px-4 py-3">
+              <SketchOverlay fill="rgba(255, 193, 83, 0.14)" hachureGap={8} />
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-600">
                 {stat.label}
               </p>
-              <p className="mt-1 text-sm font-bold text-white">{stat.value}</p>
+              <p className="mt-1 text-sm font-bold text-[var(--text-main)]">{stat.value}</p>
             </div>
           ))}
         </div>
@@ -209,8 +211,8 @@ export default async function DetailPage({ params }: DetailPageProps) {
           <section className="mt-12">
             <div className="mb-5 flex items-end justify-between gap-4">
               <div>
-                <h2 className="text-lg font-bold text-white">Learning objectives</h2>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <h2 className="section-header">Learning objectives</h2>
+                <p className="mt-2 text-xs text-gray-600">
                   What you should understand after running this simulation.
                 </p>
               </div>
@@ -219,12 +221,16 @@ export default async function DetailPage({ params }: DetailPageProps) {
               {simulation.objectives.map((objective, index) => (
                 <li
                   key={objective}
-                  className="glass-card flex gap-3 p-4 transition hover:border-sky-500/20"
+                  className="relative flex gap-3 p-4 transition"
                 >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-500/15 font-mono text-xs font-bold text-sky-300">
+                  <SketchOverlay
+                    fill={index % 2 === 0 ? "rgba(157, 204, 244, 0.16)" : "rgba(255, 193, 83, 0.15)"}
+                    hachureGap={8}
+                  />
+                  <span className="marker-wash marker-wash-sm marker-wash-green flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[var(--ink-faint)] bg-white/55 font-mono text-xs font-bold text-[var(--text-main)]">
                     {String(index + 1).padStart(2, "0")}
                   </span>
-                  <p className="text-sm leading-relaxed text-slate-300">{objective}</p>
+                  <p className="text-sm leading-relaxed text-gray-700">{objective}</p>
                 </li>
               ))}
             </ol>
@@ -235,8 +241,8 @@ export default async function DetailPage({ params }: DetailPageProps) {
         {simulation.components && simulation.components.length > 0 && (
           <section className="mt-12">
             <div className="mb-5">
-              <h2 className="text-lg font-bold text-white">Key components</h2>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <h2 className="section-header">Key components</h2>
+              <p className="mt-2 text-xs text-gray-600">
                 Core building blocks you will interact with in the topology.
               </p>
             </div>
@@ -244,13 +250,14 @@ export default async function DetailPage({ params }: DetailPageProps) {
               {simulation.components.map((component) => (
                 <div
                   key={component.name}
-                  className="glass-card group relative overflow-hidden p-5 transition hover:border-white/15"
+                  className="group relative overflow-hidden p-5 transition"
                 >
+                  <SketchOverlay fill="rgba(255, 176, 103, 0.15)" hachureGap={9} />
                   <div
                     className={`pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gradient-to-br ${CLOUD_CARD_ACCENT[simulation.cloud]} opacity-40 blur-xl transition group-hover:opacity-70`}
                   />
-                  <h3 className="relative text-sm font-bold text-white">{component.name}</h3>
-                  <p className="relative mt-1.5 text-xs leading-relaxed text-slate-400">
+                  <h3 className="relative text-sm font-bold text-[var(--text-main)]">{component.name}</h3>
+                  <p className="relative mt-1.5 text-xs leading-relaxed text-gray-700">
                     {component.description}
                   </p>
                 </div>
@@ -260,17 +267,18 @@ export default async function DetailPage({ params }: DetailPageProps) {
         )}
 
         {/* Bottom CTA */}
-        <section className="glass-card mt-14 flex flex-col items-start justify-between gap-5 p-6 sm:flex-row sm:items-center sm:p-8">
+        <section className="relative mt-14 flex flex-col items-start justify-between gap-5 p-6 sm:flex-row sm:items-center sm:p-8">
+          <SketchOverlay fill="rgba(154, 222, 170, 0.16)" hachureGap={9} />
           <div>
-            <h2 className="text-lg font-bold text-white">Ready to explore?</h2>
-            <p className="mt-1 max-w-md text-sm text-slate-400">
+            <h2 className="text-lg font-bold text-[var(--text-main)]">Ready to explore?</h2>
+            <p className="mt-1 max-w-md text-sm text-gray-700">
               Open the interactive topology, switch Physical/Logical views, and run packet-flow
               scenarios.
             </p>
           </div>
           <Link
             href={`/s/${simulation.slug}/play`}
-            className="flex shrink-0 items-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-blue-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-sky-500/25 transition hover:shadow-xl hover:shadow-sky-500/30"
+            className="hd-border flex shrink-0 items-center gap-2 bg-[var(--box-green-bg)] px-6 py-3 text-sm font-bold text-[var(--text-main)] hd-shadow transition hover:bg-[var(--box-green-border)]"
           >
             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />

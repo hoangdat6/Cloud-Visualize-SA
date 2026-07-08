@@ -15,12 +15,12 @@ export function ViewedBadge({ slug, size = "sm", className = "" }: ViewedBadgePr
 
   const sizeClasses =
     size === "lg"
-      ? "px-3 py-1.5 text-xs border border-emerald-500/30"
+      ? "px-3 py-1.5 text-xs border-2 border-[var(--box-green-border)]"
       : "px-2 py-0.5 text-[9px]";
 
   return (
     <span
-      className={`flex w-fit items-center gap-1 rounded-full bg-slate-950/80 font-bold text-emerald-300 ${sizeClasses} ${className}`}
+      className={`flex w-fit items-center gap-1 rounded-full bg-[var(--box-green-bg)] font-bold text-[var(--text-green)] ${sizeClasses} ${className}`}
     >
       <svg
         className={size === "lg" ? "h-3.5 w-3.5" : "h-3 w-3"}

@@ -5,7 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AWS Direct Connect Global Architecture Visualizer - Deep Dive with AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pangolin&family=Klee+One:wght@400;600&display=swap" rel="stylesheet">
     <style>
+        :root { --bg-paper:#fdfaf3; --grid-line:#efede7; --grid-line-vertical:#f0ebe1; --text-main:#333333; --box-yellow-bg:#fffcf0; --box-blue-bg:#f0f7fd; --box-green-bg:#f0fdf4; --box-orange-bg:#fff5e6; }
+        body { font-family:'Pangolin','Klee One',cursive,sans-serif!important; background-color:var(--bg-paper)!important; color:var(--text-main)!important; background-image:linear-gradient(var(--grid-line) 1px,transparent 1px),linear-gradient(90deg,var(--grid-line-vertical) 1px,transparent 1px)!important; background-size:20px 20px!important; }
+        .bg-slate-950,.bg-slate-900,.bg-slate-900\/90,.bg-slate-900\/80,.bg-slate-900\/60,.bg-slate-950\/70,.bg-slate-950\/50,.bg-slate-800,.bg-slate-800\/30,.bg-slate-800\/20 { background-color:rgba(255,255,255,.86)!important; }
+        .text-white,.text-slate-100,.text-slate-200,.text-slate-300 { color:var(--text-main)!important; }
+        .text-slate-400,.text-slate-500 { color:#666!important; }
+        .border-slate-800,.border-slate-700,.border-white\/10,.border-white\/5 { border-color:var(--text-main)!important; border-width:2px!important; }
+        .rounded-xl,.rounded-2xl,.rounded-lg { border-radius:10px 15px 8px 12px/12px 8px 15px 10px!important; }
+        .shadow-xl,.shadow-2xl,.shadow-lg { box-shadow:3px 3px 0 rgba(0,0,0,.1)!important; }
         .bg-grid {
             background-size: 40px 40px;
             background-image: 
@@ -56,17 +67,258 @@
         #svg-container { cursor: grab; }
         #svg-container:active { cursor: grabbing; }
         #zoom-pan-group { transition: transform 0.05s ease-out; transform-origin: 0 0; }
-    </style>
+        .topo-node-icon { pointer-events: none; }
+    
+
+    /* Sketchnote normalization: remove legacy dark dashboard surfaces. */
+    html { background: var(--bg-paper) !important; color: var(--text-main) !important; }
+    body, main, header, aside, section { color: var(--text-main) !important; }
+    [class*="bg-sky-950"], [class*="bg-emerald-950"], [class*="bg-orange-950"], [class*="bg-violet-950"],
+    [class*="bg-amber-950"], [class*="bg-red-950"], [class*="bg-indigo"], [class*="bg-purple-950"],
+    [class*="bg-cyan-950"], [class*="bg-rose-950"], [class*="bg-[#"], [class*="radial-gradient"],
+    [class*="from-slate"], [class*="to-slate"], [class*="via-slate"] {
+      background: transparent !important;
+      background-color: transparent !important;
+      background-image: none !important;
+    }
+    [class*="bg-sky-500"], [class*="bg-cyan-500"], [class*="bg-blue-600"] { background-color: #e8f0fe !important; color: var(--text-main) !important; }
+    [class*="bg-orange-500"], [class*="bg-amber-500"] { background-color: #fff5e6 !important; color: var(--text-main) !important; }
+    [class*="bg-emerald-500"], [class*="bg-green-500"] { background-color: #f0fdf4 !important; color: var(--text-main) !important; }
+    [class*="text-sky"], [class*="text-cyan"], [class*="text-blue"], [class*="text-indigo"], [class*="text-purple"],
+    [class*="text-violet"], [class*="text-orange"], [class*="text-amber"], [class*="text-emerald"], [class*="text-green"], [class*="text-red"], [class*="text-rose"] {
+      color: var(--text-main) !important;
+    }
+    [class*="border-sky"], [class*="border-cyan"], [class*="border-blue"], [class*="border-orange"], [class*="border-amber"],
+    [class*="border-emerald"], [class*="border-green"], [class*="border-violet"], [class*="border-purple"], [class*="border-red"], [class*="border-rose"] {
+      border-color: #9f9488 !important;
+    }
+    aside, header, .node, [data-component], [data-node], [class*="scenario-btn"], [class*="mode-btn"], [class*="step-btn"] {
+      background-color: rgba(255,255,255,.72) !important;
+      border-color: #9f9488 !important;
+      box-shadow: 2px 2px 0 rgba(109,98,87,.12) !important;
+    }
+    section[class*="relative"], #svg-container, #svg-container-wrapper {
+      background-color: rgba(253,250,243,.78) !important;
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-vertical) 1px, transparent 1px) !important;
+      background-size: 20px 20px !important;
+    }
+    svg rect[fill="#082f49"], svg rect[fill="#052e16"], svg rect[fill="#0f172a"], svg rect[fill="#111827"] { fill: #f0f7fd !important; fill-opacity: .82 !important; }
+    svg rect[fill="#431407"], svg rect[fill="#7c2d12"] { fill: #fff5e6 !important; fill-opacity: .84 !important; }
+    svg rect[fill="#312e81"], svg rect[fill="#581c87"], svg rect[fill="#2e1065"] { fill: #f4f0ff !important; fill-opacity: .84 !important; }
+    svg rect[fill="#064e3b"], svg rect[fill="#052e16"] { fill: #f0fdf4 !important; fill-opacity: .84 !important; }
+    svg text { fill: var(--text-main) !important; }
+    pre, code { background: #fffaf0 !important; color: var(--text-main) !important; border-color: #e6d38e !important; }
+    ::-webkit-scrollbar-thumb { background: #c9bba8 !important; }
+
+
+    /* System-design visualizer line grammar on top of sketchnote theme. */
+    svg path[id*="base"], svg path[id*="path-"][id*="base"] {
+      stroke: #b9afa3 !important;
+      stroke-width: 2.25 !important;
+      stroke-linecap: round !important;
+      opacity: .78 !important;
+      stroke-dasharray: 7 7 !important;
+      filter: none !important;
+    }
+    svg path[id*="inner"] {
+      stroke-width: 0 !important;
+      opacity: 0 !important;
+    }
+    svg path[id*="active"], svg path.active-route {
+      stroke-width: 3 !important;
+      stroke-linecap: round !important;
+      stroke-dasharray: 9 6 !important;
+      opacity: .95 !important;
+      filter: none !important;
+    }
+    svg path:not([id*="base"]):not([id*="inner"]):not([id*="active"]).active-route {
+      stroke-width: 3 !important;
+    }
+    svg marker polygon { fill: currentColor; }
+    svg text[id*="label"], svg text {
+      paint-order: stroke !important;
+      stroke: rgba(253,250,243,.9) !important;
+      stroke-width: 3px !important;
+      stroke-linejoin: round !important;
+      font-weight: 700 !important;
+    }
+    svg rect {
+      stroke-width: 1.5 !important;
+      rx: 12 !important;
+    }
+    .node, [data-component], [data-node] {
+      min-height: 76px;
+      border-width: 1.5px !important;
+      background-color: rgba(255,255,255,.84) !important;
+    }
+    .node img, [data-component] img, [data-node] img {
+      filter: saturate(.85) contrast(.95);
+    }
+    .node.active, [data-component].active, [data-node].active {
+      outline: 2px dashed #4fa3b8 !important;
+      outline-offset: 3px !important;
+      box-shadow: 3px 3px 0 rgba(79,163,184,.16) !important;
+    }
+
+
+    /* FINAL GLOBAL SIMULATION STYLE: sketchnote shell + system-design lines. */
+    :root {
+      --sim-paper: #fdfaf3;
+      --sim-ink: #333333;
+      --sim-muted: #6b6258;
+      --sim-line: #9f9488;
+      --sim-blue: #1f9bb4;
+      --sim-teal: #16a394;
+      --sim-yellow: #d4a514;
+      --sim-orange: #e1782f;
+      --sim-green: #2f8f5b;
+      --sim-red: #c94c4c;
+      --sim-blue-fill: rgba(31,155,180,.12);
+      --sim-yellow-fill: rgba(245,196,72,.16);
+      --sim-green-fill: rgba(47,143,91,.13);
+      --sim-orange-fill: rgba(225,120,47,.13);
+      --sim-purple-fill: rgba(137,112,190,.12);
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-vertical) 1px, transparent 1px),
+        radial-gradient(45rem 26rem at 20% 10%, rgba(245,196,72,.12), transparent 62%),
+        radial-gradient(38rem 24rem at 80% 80%, rgba(31,155,180,.10), transparent 60%);
+      background-size: 20px 20px, 20px 20px, auto, auto;
+      pointer-events: none;
+    }
+    header, aside, section, [class*="rounded"], [class*="border"] {
+      border-color: var(--sim-line) !important;
+    }
+    header, aside, main > section, .node, [data-component], [data-node], [class*="scenario-btn"], [class*="mode-btn"], [class*="step-btn"], [class*="service-card"] {
+      color: var(--sim-ink) !important;
+      background: rgba(255,255,255,.68) !important;
+      box-shadow: 2px 2px 0 rgba(109,98,87,.12) !important;
+    }
+    main > section, #svg-container, #svg-container-wrapper {
+      background:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-vertical) 1px, transparent 1px),
+        rgba(253,250,243,.84) !important;
+      background-size: 20px 20px, 20px 20px, auto !important;
+    }
+    body [class*="bg-[radial-gradient"], body [class*="from-slate"], body [class*="to-slate"], body [class*="via-slate"], body [class*="bg-slate"], body [class*="bg-gray-9"], body [class*="bg-black"] {
+      background: transparent !important;
+      background-color: transparent !important;
+      background-image: none !important;
+    }
+    body [class*="text-slate"], body [class*="text-white"], body [class*="text-gray-1"], body [class*="text-gray-2"] { color: var(--sim-ink) !important; }
+    body [class*="text-sky"], body [class*="text-cyan"], body [class*="text-blue"] { color: var(--sim-blue) !important; }
+    body [class*="text-emerald"], body [class*="text-green"] { color: var(--sim-green) !important; }
+    body [class*="text-orange"], body [class*="text-amber"] { color: var(--sim-orange) !important; }
+    body [class*="text-red"], body [class*="text-rose"] { color: var(--sim-red) !important; }
+    body [class*="text-violet"], body [class*="text-purple"], body [class*="text-indigo"] { color: #7258a7 !important; }
+    svg rect[fill="#020617"], svg rect[fill="#030712"], svg rect[fill="#0f172a"], svg rect[fill="#111827"], svg rect[fill="#1e293b"], svg rect[fill="#082f49"], svg rect[fill="#052e16"], svg rect[fill="#431407"], svg rect[fill="#312e81"], svg rect[fill="#581c87"], svg rect[fill="#064e3b"] {
+      fill: rgba(255,255,255,.58) !important;
+      stroke: var(--sim-line) !important;
+      fill-opacity: 1 !important;
+    }
+    svg rect[stroke="#0c4a6e"], svg rect[stroke="#14532d"], svg rect[stroke="#9a3412"], svg rect[stroke="#1e293b"], svg rect[stroke="#0f766e"] {
+      stroke: var(--sim-line) !important;
+    }
+    svg path[id*="base"], svg path[id*="inner"] {
+      stroke: var(--sim-line) !important;
+      stroke-width: 2 !important;
+      stroke-dasharray: 7 7 !important;
+      opacity: .75 !important;
+    }
+    svg path[id*="inner"] { opacity: 0 !important; }
+    svg path[id*="active"], svg path.active-route {
+      stroke-width: 3 !important;
+      stroke-dasharray: 9 6 !important;
+      filter: none !important;
+    }
+    svg text {
+      fill: var(--sim-ink) !important;
+      stroke: rgba(253,250,243,.92) !important;
+      stroke-width: 3px !important;
+      paint-order: stroke !important;
+    }
+    .node, [data-component], [data-node] {
+      background: rgba(255,255,255,.82) !important;
+      border: 1.5px solid var(--sim-line) !important;
+    }
+    .node.active, [data-component].active, [data-node].active {
+      outline: 2px dashed var(--sim-blue) !important;
+      outline-offset: 3px !important;
+    }
+
+
+    /* FINAL COLORFUL SKETCHNOTE FILL: avoid plain-white simulator panels. */
+    header {
+      background: linear-gradient(90deg, rgba(244,240,255,.92), rgba(255,252,240,.9)) !important;
+    }
+    aside:first-of-type, main > aside:first-child, .left-panel {
+      background: linear-gradient(180deg, rgba(255,252,240,.94), rgba(244,240,255,.72)) !important;
+    }
+    aside:last-of-type, main > aside:last-child, .right-panel {
+      background: linear-gradient(180deg, rgba(240,247,253,.94), rgba(232,240,254,.72)) !important;
+    }
+    main > section, #svg-container, #svg-container-wrapper {
+      background:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-vertical) 1px, transparent 1px),
+        linear-gradient(135deg, rgba(240,247,253,.78), rgba(255,252,240,.72) 45%, rgba(240,253,244,.62)) !important;
+      background-size: 20px 20px, 20px 20px, auto !important;
+    }
+    [class*="step-btn"], [class*="scenario-btn"], [class*="mode-btn"] {
+      background: rgba(255,248,214,.88) !important;
+    }
+    [class*="step-btn"]:nth-child(2n), [class*="scenario-btn"]:nth-child(2n), [class*="mode-btn"]:nth-child(2n) {
+      background: rgba(240,247,253,.88) !important;
+    }
+    [class*="step-btn"]:nth-child(3n), [class*="scenario-btn"]:nth-child(3n), [class*="mode-btn"]:nth-child(3n) {
+      background: rgba(240,253,244,.88) !important;
+    }
+    .node, [data-component], [data-node] {
+      background: rgba(240,247,253,.9) !important;
+    }
+    .node:nth-of-type(2n), [data-component]:nth-of-type(2n), [data-node]:nth-of-type(2n) {
+      background: rgba(255,245,230,.9) !important;
+    }
+    .node:nth-of-type(3n), [data-component]:nth-of-type(3n), [data-node]:nth-of-type(3n) {
+      background: rgba(240,253,244,.9) !important;
+    }
+    .node:nth-of-type(4n), [data-component]:nth-of-type(4n), [data-node]:nth-of-type(4n) {
+      background: rgba(244,240,255,.9) !important;
+    }
+    [class*="bg-amber"], [class*="bg-yellow"] { background-color: rgba(255,248,214,.9) !important; }
+    [class*="bg-sky"], [class*="bg-cyan"], [class*="bg-blue"] { background-color: rgba(240,247,253,.9) !important; }
+    [class*="bg-emerald"], [class*="bg-green"] { background-color: rgba(240,253,244,.9) !important; }
+    [class*="bg-orange"] { background-color: rgba(255,245,230,.9) !important; }
+    [class*="bg-violet"], [class*="bg-purple"], [class*="bg-indigo"] { background-color: rgba(244,240,255,.9) !important; }
+    [class*="bg-red"], [class*="bg-rose"] { background-color: rgba(253,234,234,.9) !important; }
+    svg rect[fill], svg path[fill]:not([fill="none"]) {
+      fill-opacity: .86 !important;
+    }
+    svg rect:nth-of-type(4n+1) { fill: #f0f7fd !important; }
+    svg rect:nth-of-type(4n+2) { fill: #fff5e6 !important; }
+    svg rect:nth-of-type(4n+3) { fill: #f0fdf4 !important; }
+    svg rect:nth-of-type(4n+4) { fill: #f4f0ff !important; }
+    .section-header, h2, h3 {
+      text-shadow: 1px 1px 0 rgba(255,255,255,.8);
+    }
+</style>
 </head>
 <body class="h-full bg-slate-950 bg-grid flex flex-col font-sans antialiased selection:bg-cyan-500 overflow-hidden">
 
     <!-- Header -->
     <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur-md px-6 py-4 flex flex-col lg:flex-row items-center justify-between gap-4 z-20 shrink-0">
         <div class="flex items-center gap-4">
-            <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <svg class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+            <div class="h-12 w-12 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center shadow-lg shadow-blue-500/20 p-2">
+                <img src="/icons/aws/services/networking-content-delivery/aws-direct-connect.svg" alt="" class="h-8 w-8" />
             </div>
             <div>
                 <h1 class="text-lg font-bold tracking-wider text-white uppercase flex items-center gap-2">
@@ -79,27 +331,26 @@
 
         <!-- View Controls -->
         <div class="flex items-center bg-slate-950 p-1.5 rounded-xl border border-slate-800">
-            <button onclick="switchViewMode('physical')" id="btn-mode-physical" class="px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-blue-600 text-white shadow-md shadow-blue-500/20">
+            <button data-action="view-mode" data-mode="physical" id="btn-mode-physical" class="px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-blue-600 text-white shadow-md shadow-blue-500/20">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                 Physical (L1/L2)
             </button>
-            <button onclick="switchViewMode('logical')" id="btn-mode-logical" class="px-4 py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 transition flex items-center gap-2">
+            <button data-action="view-mode" data-mode="logical" id="btn-mode-logical" class="px-4 py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 transition flex items-center gap-2">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>
                 Logical (VLAN/VIF)
             </button>
         </div>
     </header>
 
-    <main class="flex-1 flex overflow-hidden p-4 gap-4">
-        
-        <!-- Sidebar Controls -->
-        <div class="w-[440px] flex flex-col gap-4 shrink-0 overflow-y-auto pr-1">
-            
-            <!-- Scenarios -->
-            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 shadow-xl shrink-0">
+    <main class="flex-1 flex overflow-hidden p-4 gap-4 min-h-0">
+
+        <!-- LEFT: Scenarios -->
+        <aside class="w-[360px] shrink-0 flex flex-col bg-slate-900/80 border border-slate-800 rounded-xl shadow-xl overflow-hidden">
+            <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4 min-h-0">
+            <div class="bg-slate-950/50 border border-slate-800 rounded-xl p-4 shadow-xl shrink-0">
                 <h2 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-800 pb-2">Run traffic scenarios</h2>
                 <div class="flex flex-col gap-2">
-                    <button onclick="runSimulation('private')" class="group text-left p-3 rounded-lg border border-slate-800 bg-slate-950/50 hover:border-sky-500/50 transition focus:outline-none flex flex-col gap-1">
+                    <button data-action="run-scenario" data-scenario="private" class="group text-left p-3 rounded-lg border border-slate-800 bg-slate-950/50 hover:border-sky-500/50 transition focus:outline-none flex flex-col gap-1">
                         <div class="flex justify-between items-center w-full">
                             <span class="text-xs font-bold text-sky-400">1. Private VIF flow</span>
                             <span class="text-[9px] font-mono bg-sky-500/20 text-sky-300 px-1.5 py-0.5 rounded">VLAN 100</span>
@@ -107,7 +358,7 @@
                         <span class="text-[10px] text-slate-400">Into a single VPC via DX Gateway & VGW.</span>
                     </button>
 
-                    <button onclick="runSimulation('transit')" class="group text-left p-3 rounded-lg border border-slate-800 bg-slate-950/50 hover:border-purple-500/50 transition focus:outline-none flex flex-col gap-1">
+                    <button data-action="run-scenario" data-scenario="transit" class="group text-left p-3 rounded-lg border border-slate-800 bg-slate-950/50 hover:border-purple-500/50 transition focus:outline-none flex flex-col gap-1">
                         <div class="flex justify-between items-center w-full">
                             <span class="text-xs font-bold text-purple-400">2. Transit VIF flow</span>
                             <span class="text-[9px] font-mono bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded">VLAN 200</span>
@@ -115,7 +366,7 @@
                         <span class="text-[10px] text-slate-400">Into Prod VPC through the Transit Gateway (TGW) hub.</span>
                     </button>
 
-                    <button onclick="runSimulation('public')" class="group text-left p-3 rounded-lg border border-slate-800 bg-slate-950/50 hover:border-orange-500/50 transition focus:outline-none flex flex-col gap-1">
+                    <button data-action="run-scenario" data-scenario="public" class="group text-left p-3 rounded-lg border border-slate-800 bg-slate-950/50 hover:border-orange-500/50 transition focus:outline-none flex flex-col gap-1">
                         <div class="flex justify-between items-center w-full">
                             <span class="text-xs font-bold text-orange-400">3. Public VIF flow</span>
                             <span class="text-[9px] font-mono bg-orange-500/20 text-orange-300 px-1.5 py-0.5 rounded">VLAN 300</span>
@@ -124,110 +375,21 @@
                     </button>
                 </div>
             </div>
-
-            <!-- Deep Dive Config Inspector & AI Assistant -->
-            <div class="flex-1 bg-slate-900/80 border border-slate-800 rounded-xl shadow-xl flex flex-col min-h-[400px] overflow-hidden">
-                <div class="p-4 border-b border-slate-800 bg-slate-900">
-                    <h2 class="text-xs font-bold text-emerald-400 uppercase flex items-center justify-between">
-                        <span class="flex items-center gap-2">
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
-                            Inspector & AI Assistant
-                        </span>
-                    </h2>
-                </div>
-                
-                <div id="inspector-idle" class="flex-1 flex flex-col items-center justify-center text-center p-6 text-slate-500">
-                    <svg class="h-10 w-10 mb-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
-                    </svg>
-                    <p class="text-xs max-w-[250px]">Scroll or drag the diagram to explore.<br><br>Click any device for deep-dive config and AI-generated code.</p>
-                </div>
-
-                <div id="inspector-content" class="hidden flex flex-col h-full overflow-hidden">
-                    <!-- Tabs -->
-                    <div class="flex border-b border-slate-800 shrink-0">
-                        <button id="tab-config-btn" onclick="switchTab('config')" class="flex-1 py-2 text-[10px] font-bold uppercase tracking-wider text-emerald-400 border-b-2 border-emerald-400 bg-slate-800/30 transition">CLI Config</button>
-                        <button id="tab-ai-btn" onclick="switchTab('ai')" class="flex-1 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b-2 border-transparent hover:text-indigo-300 transition flex items-center justify-center gap-1">
-                            <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z"/></svg>
-                            Cloud Architect AI ✨
-                        </button>
-                    </div>
-
-                    <!-- Common Header for Node -->
-                    <div class="p-4 pb-2 bg-slate-800/20 shrink-0">
-                        <span id="inspect-title" class="font-bold text-sm text-white block mb-1">Device Name</span>
-                        <span id="inspect-badge" class="inline-block bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider mb-2">Layer Status</span>
-                        <p id="inspect-desc" class="text-slate-400 text-[11px] leading-relaxed">Description...</p>
-                    </div>
-
-                    <!-- Config Tab Content -->
-                    <div id="tab-config-content" class="flex-1 flex flex-col p-3 pt-0 overflow-hidden min-h-0">
-                        <div class="flex-1 bg-[#0d1117] rounded-lg border border-slate-800 overflow-hidden flex flex-col mt-2 min-h-0">
-                            <div class="bg-slate-800/50 px-3 py-1.5 border-b border-slate-800 flex justify-between items-center shrink-0">
-                                <span class="text-[9px] font-mono text-slate-400">Terminal / Code / Route Table</span>
-                            </div>
-                            <pre id="inspect-config" class="p-3 text-[10px] font-mono text-emerald-400 overflow-y-auto leading-relaxed flex-1 whitespace-pre-wrap break-words min-h-0">Loading...</pre>
-                        </div>
-                    </div>
-
-                    <!-- AI Tab Content -->
-                    <div id="tab-ai-content" class="hidden flex-1 flex flex-col p-4 pt-2 overflow-hidden bg-gradient-to-b from-indigo-950/20 to-slate-900/50 relative">
-                        <!-- Chat Output Area -->
-                        <div id="ai-chat-history" class="flex-1 overflow-y-auto pr-2 flex flex-col gap-3 mb-3 text-[11px] leading-relaxed text-slate-300 markdown-body">
-                            <div class="bg-indigo-900/30 border border-indigo-500/30 rounded-lg p-3 text-indigo-200">
-                                Hi! I'm your Network AI assistant (Gemini). Pick an action below to work with <b id="ai-context-node-name" class="text-indigo-400">this device</b>.
-                            </div>
-                        </div>
-                        <div id="ai-error" class="hidden bg-red-900/40 border border-red-500/50 text-red-200 rounded p-2 text-[10px] mb-2">
-                            AI connection error. Please try again.
-                        </div>
-                        
-                        <!-- AI Actions Grid -->
-                        <div class="shrink-0 flex flex-col gap-2">
-                            <div class="grid grid-cols-2 gap-2">
-                                <button id="btn-ai-analyze" onclick="requestAIAnalysis()" class="py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-[10px] font-bold transition border border-slate-600 hover:border-slate-400 flex justify-center items-center gap-1.5">
-                                    🔍 Risks & architecture
-                                </button>
-                                <button id="btn-ai-iac" onclick="generateIaC()" class="py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold transition border border-indigo-500 hover:border-indigo-400 flex justify-center items-center gap-1.5 shadow-lg shadow-indigo-500/20">
-                                    💻 Generate IaC ✨
-                                </button>
-                                <button id="btn-ai-outage" onclick="simulateOutage()" class="col-span-2 py-2 bg-red-900/50 hover:bg-red-800/80 text-red-200 rounded-lg text-[10px] font-bold transition border border-red-800 hover:border-red-500 flex justify-center items-center gap-1.5">
-                                    ⚠️ Outage drill (disaster scenario) ✨
-                                </button>
-                            </div>
-                            
-                            <div class="flex gap-2 relative mt-1">
-                                <input id="ai-chat-input" type="text" placeholder="Ask about security config..." class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 transition" onkeypress="handleAIKeyPress(event)" />
-                                <button onclick="sendUserMessage()" id="btn-ai-send" class="bg-slate-800 hover:bg-indigo-600 border border-slate-700 text-white rounded-lg px-3 flex items-center justify-center transition">
-                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- Loading Overlay -->
-                        <div id="ai-loading-overlay" class="hidden absolute inset-0 bg-slate-900/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center">
-                            <svg class="h-8 w-8 text-indigo-400 ai-loading mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            <span class="text-xs font-bold text-indigo-300 animate-pulse">Gemini is thinking...</span>
-                        </div>
-                    </div>
-                </div>
             </div>
-        </div>
+        </aside>
 
-        <!-- Architecture Canvas with Zoom/Pan Support -->
-        <div class="flex-1 bg-slate-900/60 rounded-xl border border-slate-800 relative overflow-hidden shadow-2xl flex items-center justify-center" id="svg-container-wrapper">
+        <!-- CENTER: Canvas -->
+        <section class="flex-1 min-w-0 bg-slate-900/60 rounded-xl border border-slate-800 relative overflow-hidden shadow-2xl bg-grid flex items-center justify-center" id="svg-container-wrapper">
             
             <!-- Floating Zoom Controls -->
             <div class="absolute top-4 right-4 z-10 flex flex-col gap-2 bg-slate-900/80 p-1.5 rounded-lg border border-slate-700 backdrop-blur-md">
-                <button onclick="zoomCanvas(0.1)" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded text-slate-300 transition" title="Zoom In">
+                <button data-action="zoom" data-delta="0.1" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded text-slate-300 transition" title="Zoom In">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                 </button>
-                <button onclick="zoomCanvas(-0.1)" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded text-slate-300 transition" title="Zoom Out">
+                <button data-action="zoom" data-delta="-0.1" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded text-slate-300 transition" title="Zoom Out">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
                 </button>
-                <button onclick="resetZoom()" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded text-slate-300 transition text-[10px] font-bold" title="Reset View">
+                <button data-action="reset-zoom" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded text-slate-300 transition text-[10px] font-bold" title="Reset View">
                     1:1
                 </button>
             </div>
@@ -256,7 +418,7 @@
                             <text x="340" y="340" fill="#64748b" font-size="9" text-anchor="middle" font-weight="bold">Long-haul ISP Fiber</text>
                             
                             <!-- CROSS-CONNECT Pipe -->
-                            <g class="cursor-pointer group" onclick="nodeClick('cross-connect')">
+                            <g class="cursor-pointer group" data-node="cross-connect">
                                 <path d="M 470,360 L 570,360" stroke="#854d0e" stroke-width="18" stroke-linecap="round" fill="none" />
                                 <path d="M 470,360 L 570,360" stroke="#facc15" stroke-width="14" stroke-linecap="round" fill="none" class="anim-fiber transition" />
                                 <rect x="490" y="335" width="60" height="14" rx="2" fill="#0b0f19" stroke="#facc15" stroke-width="1" />
@@ -292,35 +454,31 @@
                         <!-- ================= HARDWARE NODES ================= -->
                         
                         <!-- On-Prem Server -->
-                        <g class="cursor-pointer group" onclick="nodeClick('onprem-server')">
+                        <g class="cursor-pointer group" data-node="onprem-server">
                             <rect x="40" y="220" width="100" height="60" rx="8" fill="#1e293b" stroke="#334155" stroke-width="2" class="group-hover:stroke-sky-400 transition" />
-                            <rect x="50" y="240" width="80" height="8" rx="2" fill="#0f172a" />
-                            <rect x="50" y="255" width="80" height="8" rx="2" fill="#0f172a" />
-                            <circle cx="55" cy="244" r="1.5" fill="#22c55e" />
-                            <circle cx="55" cy="259" r="1.5" fill="#22c55e" />
+                            <image class="topo-node-icon" href="/icons/third-party/cisco/topology/workstation.svg" x="68" y="232" width="44" height="36" preserveAspectRatio="xMidYMid meet" />
                             <text x="90" y="235" fill="#f8fafc" font-size="10" font-weight="bold" text-anchor="middle">Local Servers</text>
                             <path d="M 90,280 L 90,330" stroke="#334155" stroke-width="3" fill="none" />
                         </g>
 
                         <!-- On-Prem Firewall -->
-                        <g class="cursor-pointer group" onclick="nodeClick('onprem-fw')">
+                        <g class="cursor-pointer group" data-node="onprem-fw">
                             <rect x="40" y="330" width="100" height="60" rx="6" fill="#7f1d1d" stroke="#b91c1c" stroke-width="2" class="group-hover:stroke-red-400 transition" />
-                            <path d="M 40,350 L 140,350 M 40,370 L 140,370 M 90,330 L 90,350 M 65,350 L 65,370 M 115,350 L 115,370" stroke="#991b1b" stroke-width="1.5" />
+                            <image class="topo-node-icon" href="/icons/third-party/cisco/topology/firewall.svg" x="68" y="342" width="44" height="36" preserveAspectRatio="xMidYMid meet" />
                             <text x="90" y="365" fill="#f8fafc" font-size="11" font-weight="bold" text-anchor="middle" filter="drop-shadow(0 0 2px #000)">FIREWALL</text>
                             <path d="M 140,360 L 170,360" stroke="#334155" stroke-width="3" fill="none" />
                         </g>
 
                         <!-- Customer Edge Router -->
-                        <g class="cursor-pointer group" onclick="nodeClick('ce-router')">
+                        <g class="cursor-pointer group" data-node="ce-router">
                             <rect x="170" y="330" width="100" height="60" rx="8" fill="#1e293b" stroke="#334155" stroke-width="2" class="group-hover:stroke-sky-400 transition" />
-                            <circle cx="220" cy="360" r="14" stroke="#38bdf8" stroke-width="1.5" fill="none" />
-                            <path d="M 212,360 L 228,360 M 220,352 L 220,368 M 215,355 L 225,365 M 215,365 L 225,355" stroke="#38bdf8" stroke-width="1" />
+                            <image class="topo-node-icon" href="/icons/third-party/cisco/topology/router.svg" x="198" y="338" width="44" height="44" preserveAspectRatio="xMidYMid meet" />
                             <text x="220" y="345" fill="#f8fafc" font-size="10" font-weight="bold" text-anchor="middle">CE Router</text>
                             <text x="220" y="385" fill="#10b981" font-size="8" font-family="monospace" font-weight="bold" text-anchor="middle">ASN: 65000</text>
                         </g>
 
                         <!-- Partner Demarcation Rack -->
-                        <g class="cursor-pointer group" onclick="nodeClick('demarc')">
+                        <g class="cursor-pointer group" data-node="demarc">
                             <rect x="410" y="260" width="60" height="200" rx="6" fill="#1e293b" stroke="#475569" stroke-width="2" class="group-hover:stroke-yellow-500 transition" />
                             <text x="440" y="250" fill="#94a3b8" font-size="9" font-weight="bold" text-anchor="middle">PARTNER</text>
                             <rect x="418" y="275" width="44" height="20" rx="2" fill="#0f172a" />
@@ -333,54 +491,46 @@
                         </g>
 
                         <!-- AWS Direct Connect Router (PE) -->
-                        <g class="cursor-pointer group" onclick="nodeClick('pe-router')">
+                        <g class="cursor-pointer group" data-node="pe-router">
                             <rect x="570" y="260" width="70" height="200" rx="6" fill="#1e293b" stroke="#3b0764" stroke-width="2" class="group-hover:stroke-fuchsia-500 transition" />
                             <text x="605" y="250" fill="#d946ef" font-size="9" font-weight="bold" text-anchor="middle">AWS PE</text>
-                            
-                            <rect x="580" y="275" width="50" height="40" rx="4" fill="#2e1065" stroke="#d946ef" stroke-width="1" />
-                            <path d="M 590,295 L 620,295 M 597,288 L 613,302 M 597,302 L 613,288" stroke="#f472b6" stroke-width="1.5" />
-                            
+                            <image class="topo-node-icon" href="/icons/aws/services/networking-content-delivery/aws-direct-connect.svg" x="578" y="285" width="54" height="54" preserveAspectRatio="xMidYMid meet" />
                             <rect x="580" y="345" width="50" height="30" rx="4" fill="#0f172a" stroke="#0ea5e9" stroke-width="1" />
                             <circle cx="595" cy="360" r="4" fill="#22c55e" class="animate-pulse" />
                             <text x="615" y="363" fill="#38bdf8" font-size="8" font-weight="bold" font-family="monospace">TRUNK</text>
                         </g>
 
                         <!-- AWS Direct Connect Service Endpoint (Logical) -->
-                        <g class="cursor-pointer group" onclick="nodeClick('aws-dx-endpoint')">
+                        <g class="cursor-pointer group" data-node="aws-dx-endpoint">
                             <rect x="735" y="270" width="30" height="180" rx="6" fill="#1e293b" stroke="#0ea5e9" stroke-width="2" stroke-dasharray="4 2" class="group-hover:stroke-white transition shadow-lg shadow-sky-500/20" />
+                            <image class="topo-node-icon" href="/icons/aws/services/networking-content-delivery/aws-direct-connect.svg" x="738" y="320" width="24" height="80" preserveAspectRatio="xMidYMid meet" />
                             <text x="750" y="360" fill="#38bdf8" font-size="9" font-weight="bold" text-anchor="middle" transform="rotate(-90, 750, 360)">AWS DX ENDPOINT</text>
                         </g>
 
                         <!-- Direct Connect Gateway (DXGW) -->
-                        <g class="cursor-pointer group" onclick="nodeClick('dxgw')">
+                        <g class="cursor-pointer group" data-node="dxgw">
                             <rect x="810" y="180" width="130" height="70" rx="12" fill="#1e1b4b" stroke="#6366f1" stroke-width="2" class="group-hover:stroke-indigo-400 transition shadow-lg" />
-                            <circle cx="875" cy="215" r="20" fill="#312e81" />
-                            <path d="M 863,215 L 887,215 M 875,203 L 875,227 M 866,206 L 884,224 M 866,224 L 884,206" stroke="#818cf8" stroke-width="2" />
+                            <image class="topo-node-icon" href="/icons/aws/resources/networking-content-delivery/aws-direct-connect-gateway.svg" x="845" y="192" width="46" height="46" preserveAspectRatio="xMidYMid meet" />
                             <text x="875" y="170" fill="#818cf8" font-size="10" font-weight="bold" text-anchor="middle">DX GATEWAY (Global)</text>
                         </g>
 
                         <!-- Single VPC via VGW -->
-                        <g class="cursor-pointer group" onclick="nodeClick('vpc-private')">
+                        <g class="cursor-pointer group" data-node="vpc-private">
                             <rect x="1080" y="110" width="180" height="80" rx="8" fill="#022c22" stroke="#10b981" stroke-width="2" class="group-hover:stroke-emerald-400 transition" />
-                            <rect x="1065" y="130" width="30" height="40" rx="4" fill="#064e3b" stroke="#10b981" stroke-width="1.5" />
-                            <text x="1080" y="153" fill="#34d399" font-size="9" font-weight="bold" text-anchor="middle">VGW</text>
+                            <image class="topo-node-icon" href="/icons/aws/services/networking-content-delivery/amazon-virtual-private-cloud.svg" x="1060" y="125" width="40" height="40" preserveAspectRatio="xMidYMid meet" />
                             <text x="1170" y="145" fill="#f8fafc" font-size="12" font-weight="bold" text-anchor="middle">VPC Isolated</text>
                             <text x="1170" y="165" fill="#64748b" font-size="10" font-family="monospace" text-anchor="middle">IP: 10.1.0.0/16</text>
                         </g>
 
                         <!-- EXPLICIT TRANSIT GATEWAY (TGW) -->
-                        <g class="cursor-pointer group" onclick="nodeClick('tgw-vpc')">
+                        <g class="cursor-pointer group" data-node="tgw-vpc">
                             <rect x="1000" y="300" width="100" height="120" rx="12" fill="#3b0764" stroke="#a855f7" stroke-width="2" class="group-hover:stroke-purple-400 transition" />
-                            <circle cx="1050" cy="360" r="24" fill="#581c87" stroke="#d946ef" stroke-width="1.5" />
-                            <!-- TGW Icon -->
-                            <circle cx="1050" cy="360" r="10" stroke="#f472b6" stroke-width="1.5" fill="none" />
-                            <line x1="1050" y1="345" x2="1050" y2="375" stroke="#f472b6" stroke-width="1.5" />
-                            <line x1="1035" y1="360" x2="1065" y2="360" stroke="#f472b6" stroke-width="1.5" />
+                            <image class="topo-node-icon" href="/icons/aws/services/networking-content-delivery/aws-transit-gateway.svg" x="1018" y="318" width="64" height="64" preserveAspectRatio="xMidYMid meet" />
                             <text x="1050" y="440" fill="#d946ef" font-size="10" font-weight="bold" text-anchor="middle">TRANSIT GW</text>
                         </g>
 
                         <!-- TGW Route Table Icon -->
-                        <g class="cursor-pointer group" onclick="nodeClick('tgw-route-table')">
+                        <g class="cursor-pointer group" data-node="tgw-route-table">
                             <rect x="990" y="270" width="40" height="40" rx="4" fill="#0f172a" stroke="#a855f7" stroke-width="1.5" class="group-hover:stroke-white transition" />
                             <line x1="995" y1="280" x2="1025" y2="280" stroke="#a855f7" stroke-width="2" />
                             <line x1="995" y1="290" x2="1025" y2="290" stroke="#a855f7" stroke-width="2" />
@@ -389,35 +539,31 @@
                         </g>
 
                         <!-- TGW Attachments (Explicit VPCs behind TGW) -->
-                        <g class="cursor-pointer group" onclick="nodeClick('vpc-prod')">
+                        <g class="cursor-pointer group" data-node="vpc-prod">
                             <rect x="1220" y="220" width="160" height="60" rx="8" fill="#172554" stroke="#3b82f6" stroke-width="2" class="group-hover:stroke-blue-400 transition" />
-                            <rect x="1205" y="235" width="30" height="30" rx="4" fill="#1e3a8a" stroke="#3b82f6" stroke-width="1" />
-                            <text x="1220" y="253" fill="#93c5fd" font-size="7" font-weight="bold" text-anchor="middle">ATT</text>
+                            <image class="topo-node-icon" href="/icons/aws/services/networking-content-delivery/amazon-virtual-private-cloud.svg" x="1205" y="230" width="36" height="36" preserveAspectRatio="xMidYMid meet" />
                             <text x="1300" y="245" fill="#f8fafc" font-size="11" font-weight="bold" text-anchor="middle">VPC Production</text>
                             <text x="1300" y="260" fill="#94a3b8" font-size="9" font-family="monospace" text-anchor="middle">10.100.0.0/16</text>
                         </g>
 
-                        <g class="cursor-pointer group" onclick="nodeClick('vpc-stg')">
+                        <g class="cursor-pointer group" data-node="vpc-stg">
                             <rect x="1220" y="330" width="160" height="60" rx="8" fill="#14532d" stroke="#22c55e" stroke-width="2" class="group-hover:stroke-green-400 transition" />
-                            <rect x="1205" y="345" width="30" height="30" rx="4" fill="#166534" stroke="#22c55e" stroke-width="1" />
-                            <text x="1220" y="363" fill="#86efac" font-size="7" font-weight="bold" text-anchor="middle">ATT</text>
+                            <image class="topo-node-icon" href="/icons/aws/services/networking-content-delivery/amazon-virtual-private-cloud.svg" x="1205" y="340" width="36" height="36" preserveAspectRatio="xMidYMid meet" />
                             <text x="1300" y="355" fill="#f8fafc" font-size="11" font-weight="bold" text-anchor="middle">VPC Staging</text>
                             <text x="1300" y="370" fill="#94a3b8" font-size="9" font-family="monospace" text-anchor="middle">10.101.0.0/16</text>
                         </g>
 
-                        <g class="cursor-pointer group" onclick="nodeClick('vpc-dev')">
+                        <g class="cursor-pointer group" data-node="vpc-dev">
                             <rect x="1220" y="440" width="160" height="60" rx="8" fill="#4c1d95" stroke="#8b5cf6" stroke-width="2" class="group-hover:stroke-purple-400 transition" />
-                            <rect x="1205" y="455" width="30" height="30" rx="4" fill="#5b21b6" stroke="#8b5cf6" stroke-width="1" />
-                            <text x="1220" y="473" fill="#c4b5fd" font-size="7" font-weight="bold" text-anchor="middle">ATT</text>
+                            <image class="topo-node-icon" href="/icons/aws/services/networking-content-delivery/amazon-virtual-private-cloud.svg" x="1205" y="450" width="36" height="36" preserveAspectRatio="xMidYMid meet" />
                             <text x="1300" y="465" fill="#f8fafc" font-size="11" font-weight="bold" text-anchor="middle">VPC Development</text>
                             <text x="1300" y="480" fill="#94a3b8" font-size="9" font-family="monospace" text-anchor="middle">10.102.0.0/16</text>
                         </g>
 
                         <!-- AWS Public Zone (S3, DynamoDB) -->
-                        <g class="cursor-pointer group" onclick="nodeClick('public-zone')">
+                        <g class="cursor-pointer group" data-node="public-zone">
                             <rect x="1100" y="530" width="180" height="100" rx="8" fill="#451a03" stroke="#ea580c" stroke-width="2" class="group-hover:stroke-orange-400 transition" />
-                            <path d="M 1170,565 C 1170,555 1210,555 1210,565 L 1210,600 C 1210,610 1170,610 1170,600 Z" fill="#9a3412" stroke="#fb923c" stroke-width="1.5" />
-                            <ellipse cx="1190" cy="565" rx="20" ry="6" fill="#f97316" />
+                            <image class="topo-node-icon" href="/icons/aws/services/storage/amazon-simple-storage-service.svg" x="1168" y="548" width="44" height="44" preserveAspectRatio="xMidYMid meet" />
                             <text x="1190" y="545" fill="#f8fafc" font-size="12" font-weight="bold" text-anchor="middle">AWS Public Services</text>
                             <text x="1190" y="620" fill="#fdba74" font-size="10" font-family="monospace" text-anchor="middle">S3, DynamoDB</text>
                         </g>
@@ -427,7 +573,64 @@
                     </g>
                 </svg>
             </div>
-        </div>
+        </section>
+
+        <!-- RIGHT: Inspector -->
+        <aside class="w-[360px] shrink-0 flex flex-col bg-slate-900/80 border border-slate-800 rounded-xl shadow-xl overflow-hidden min-h-0">
+            <div class="p-4 border-b border-slate-800 bg-slate-900 shrink-0">
+                <h2 class="text-xs font-bold text-emerald-400 uppercase">Giải phẫu kỹ thuật</h2>
+            </div>
+            <div id="inspector-idle" class="flex-1 flex flex-col items-center justify-center text-center p-6 text-slate-500 min-h-0">
+                <p class="text-xs max-w-[250px]">Kéo canvas để pan, scroll để zoom. Click device để xem CLI config và AI assistant.</p>
+            </div>
+            <div id="inspector-content" class="hidden flex flex-col flex-1 overflow-hidden min-h-0">
+                <div class="flex border-b border-slate-800 shrink-0">
+                    <button id="tab-config-btn" data-action="switch-tab" data-tab="config" class="flex-1 py-2 text-[10px] font-bold uppercase tracking-wider text-emerald-400 border-b-2 border-emerald-400 bg-slate-800/30 transition">CLI Config</button>
+                    <button id="tab-ai-btn" data-action="switch-tab" data-tab="ai" class="flex-1 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b-2 border-transparent hover:text-indigo-300 transition flex items-center justify-center gap-1">
+                        <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z"/></svg>
+                        AI ✨
+                    </button>
+                </div>
+                <div class="p-4 pb-2 bg-slate-800/20 shrink-0">
+                    <span id="inspect-title" class="font-bold text-sm text-white block mb-1">Device Name</span>
+                    <span id="inspect-badge" class="inline-block bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider mb-2">Layer Status</span>
+                    <p id="inspect-desc" class="text-slate-400 text-[11px] leading-relaxed">Description...</p>
+                </div>
+                <div id="tab-config-content" class="flex-1 flex flex-col p-3 pt-0 overflow-hidden min-h-0">
+                    <div class="flex-1 bg-[#0d1117] rounded-lg border border-slate-800 overflow-hidden flex flex-col mt-2 min-h-0">
+                        <div class="bg-slate-800/50 px-3 py-1.5 border-b border-slate-800 flex justify-between items-center shrink-0">
+                            <span class="text-[9px] font-mono text-slate-400">Terminal / Code / Route Table</span>
+                        </div>
+                        <pre id="inspect-config" class="p-3 text-[10px] font-mono text-emerald-400 overflow-y-auto leading-relaxed flex-1 whitespace-pre-wrap break-words min-h-0">Loading...</pre>
+                    </div>
+                </div>
+                <div id="tab-ai-content" class="hidden flex-1 flex flex-col p-4 pt-2 overflow-hidden bg-gradient-to-b from-indigo-950/20 to-slate-900/50 relative min-h-0">
+                    <div id="ai-chat-history" class="flex-1 overflow-y-auto pr-2 flex flex-col gap-3 mb-3 text-[11px] leading-relaxed text-slate-300 markdown-body min-h-0">
+                        <div class="bg-indigo-900/30 border border-indigo-500/30 rounded-lg p-3 text-indigo-200">
+                            Hi! I'm your Network AI assistant (Gemini). Pick an action below to work with <b id="ai-context-node-name" class="text-indigo-400">this device</b>.
+                        </div>
+                    </div>
+                    <div id="ai-error" class="hidden bg-red-900/40 border border-red-500/50 text-red-200 rounded p-2 text-[10px] mb-2">AI connection error. Please try again.</div>
+                    <div class="shrink-0 flex flex-col gap-2">
+                        <div class="grid grid-cols-2 gap-2">
+                            <button id="btn-ai-analyze" data-action="ai-analyze" class="py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-[10px] font-bold transition border border-slate-600">Risks</button>
+                            <button id="btn-ai-iac" data-action="ai-iac" class="py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold transition border border-indigo-500">IaC ✨</button>
+                            <button id="btn-ai-outage" data-action="ai-outage" class="col-span-2 py-2 bg-red-900/50 hover:bg-red-800/80 text-red-200 rounded-lg text-[10px] font-bold transition border border-red-800">Outage drill ✨</button>
+                        </div>
+                        <div class="flex gap-2 relative mt-1">
+                            <input id="ai-chat-input" type="text" placeholder="Ask about security config..." class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 transition" />
+                            <button data-action="ai-send" id="btn-ai-send" class="bg-slate-800 hover:bg-indigo-600 border border-slate-700 text-white rounded-lg px-3 flex items-center justify-center transition">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="ai-loading-overlay" class="hidden absolute inset-0 bg-slate-900/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center">
+                        <svg class="h-8 w-8 text-indigo-400 ai-loading mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                        <span class="text-xs font-bold text-indigo-300 animate-pulse">Gemini is thinking...</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
     </main>
 
     <script>
@@ -718,6 +921,37 @@ Network          Next Hop            Path
             }
         }
 
+        function bindUIEvents() {
+            document.addEventListener('click', (event) => {
+                const nodeEl = event.target.closest('[data-node]');
+                if (nodeEl) {
+                    nodeClick(nodeEl.dataset.node);
+                    return;
+                }
+
+                const actionEl = event.target.closest('[data-action]');
+                if (!actionEl) return;
+
+                const action = actionEl.dataset.action;
+                if (action === 'view-mode') switchViewMode(actionEl.dataset.mode);
+                if (action === 'run-scenario') runSimulation(actionEl.dataset.scenario);
+                if (action === 'switch-tab') switchTab(actionEl.dataset.tab);
+                if (action === 'zoom') zoomCanvas(Number(actionEl.dataset.delta));
+                if (action === 'reset-zoom') resetZoom();
+                if (action === 'ai-analyze') requestAIAnalysis();
+                if (action === 'ai-iac') generateIaC();
+                if (action === 'ai-outage') simulateOutage();
+                if (action === 'ai-send') sendUserMessage();
+            });
+
+            const chatInput = document.getElementById('ai-chat-input');
+            if (chatInput) {
+                chatInput.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') sendUserMessage();
+                });
+            }
+        }
+
         // --- Canvas Zoom & Pan Logic ---
         const svgContainer = document.getElementById('svg-container');
         const zoomGroup = document.getElementById('zoom-pan-group');
@@ -768,23 +1002,59 @@ Network          Next Hop            Path
 
 
         // --- Simulation Engine ---
+        const TRAFFIC_SCENARIOS = {
+            private: {
+                basePathId: 'path-private-base',
+                activePathId: 'path-private-active',
+                targetNode: 'vpc-private',
+                triggers: [
+                    { start: 0.02, end: 0.05, node: 'onprem-fw' },
+                    { start: 0.10, end: 0.15, node: 'ce-router' },
+                    { start: 0.35, end: 0.40, node: 'pe-router' },
+                    { start: 0.45, end: 0.50, node: 'aws-dx-endpoint' },
+                    { start: 0.55, end: 0.60, node: 'dxgw' },
+                ],
+            },
+            transit: {
+                basePathId: 'path-transit-base',
+                activePathId: 'path-transit-active',
+                targetNode: 'vpc-prod',
+                triggers: [
+                    { start: 0.02, end: 0.05, node: 'onprem-fw' },
+                    { start: 0.10, end: 0.15, node: 'ce-router' },
+                    { start: 0.35, end: 0.40, node: 'pe-router' },
+                    { start: 0.45, end: 0.50, node: 'aws-dx-endpoint' },
+                    { start: 0.55, end: 0.60, node: 'dxgw' },
+                    { start: 0.75, end: 0.80, node: 'tgw-route-table' },
+                ],
+            },
+            public: {
+                basePathId: 'path-public-base',
+                activePathId: 'path-public-active',
+                targetNode: 'public-zone',
+                triggers: [
+                    { start: 0.02, end: 0.05, node: 'onprem-fw' },
+                    { start: 0.10, end: 0.15, node: 'ce-router' },
+                    { start: 0.35, end: 0.40, node: 'pe-router' },
+                    { start: 0.45, end: 0.50, node: 'aws-dx-endpoint' },
+                ],
+            },
+        };
+
         let animFrame;
         function runSimulation(type) {
+            const scenario = TRAFFIC_SCENARIOS[type];
+            if (!scenario) return;
+
             cancelAnimationFrame(animFrame);
             switchViewMode('logical');
 
             document.getElementById('path-private-active').classList.add('hidden');
             document.getElementById('path-transit-active').classList.add('hidden');
             document.getElementById('path-public-active').classList.add('hidden');
+            document.getElementById(scenario.activePathId).classList.remove('hidden');
 
-            let pathId = '';
-            let targetNode = '';
-            
-            if(type === 'private') { pathId = 'path-private-base'; document.getElementById('path-private-active').classList.remove('hidden'); targetNode = 'vpc-private'; }
-            if(type === 'transit') { pathId = 'path-transit-base'; document.getElementById('path-transit-active').classList.remove('hidden'); targetNode = 'vpc-prod'; }
-            if(type === 'public') { pathId = 'path-public-base'; document.getElementById('path-public-active').classList.remove('hidden'); targetNode = 'public-zone'; }
-
-            const path = document.getElementById(pathId);
+            const path = document.getElementById(scenario.basePathId);
             const packet = document.getElementById('anim-packet');
             packet.style.display = 'block';
 
@@ -802,13 +1072,8 @@ Network          Next Hop            Path
                 packet.setAttribute('cx', pt.x);
                 packet.setAttribute('cy', pt.y);
 
-                let currentTrigger = '';
-                if(prog > 0.02 && prog < 0.05) currentTrigger = 'onprem-fw';
-                else if(prog > 0.1 && prog < 0.15) currentTrigger = 'ce-router';
-                else if(prog > 0.35 && prog < 0.4) currentTrigger = 'pe-router';
-                else if(prog > 0.45 && prog < 0.5) currentTrigger = 'aws-dx-endpoint'; 
-                else if(prog > 0.55 && prog < 0.6 && type !== 'public') currentTrigger = 'dxgw';
-                else if(prog > 0.75 && prog < 0.8 && type === 'transit') currentTrigger = 'tgw-route-table';
+                const trigger = scenario.triggers.find(item => prog > item.start && prog < item.end);
+                const currentTrigger = trigger?.node || '';
                 
                 if (currentTrigger && currentTrigger !== lastTriggeredNode) {
                     nodeClick(currentTrigger);
@@ -819,8 +1084,8 @@ Network          Next Hop            Path
                     animFrame = requestAnimationFrame(animate);
                 } else {
                     packet.style.display = 'none';
-                    if (targetNode !== lastTriggeredNode) {
-                        nodeClick(targetNode);
+                    if (scenario.targetNode !== lastTriggeredNode) {
+                        nodeClick(scenario.targetNode);
                     }
                 }
             }
@@ -828,7 +1093,31 @@ Network          Next Hop            Path
         }
 
         // --- Gemini AI Engine ---
-        const apiKey = ""; 
+        const apiKey = "";
+        const AI_CONFIGURED = apiKey.trim().length > 0;
+
+        function setAIConfiguredState() {
+            const aiError = document.getElementById('ai-error');
+            const input = document.getElementById('ai-chat-input');
+            const aiButtons = ['btn-ai-analyze', 'btn-ai-iac', 'btn-ai-outage', 'btn-ai-send']
+                .map(id => document.getElementById(id))
+                .filter(Boolean);
+
+            if (AI_CONFIGURED) return;
+
+            aiButtons.forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+            });
+            if (input) {
+                input.disabled = true;
+                input.placeholder = 'AI disabled: configure apiKey in this standalone HTML.';
+            }
+            if (aiError) {
+                aiError.textContent = 'AI assistant is disabled because no Gemini API key is configured.';
+                aiError.classList.remove('hidden');
+            }
+        }
 
         async function fetchWithRetry(url, options, maxRetries = 5) {
             let delay = 1000;
@@ -846,6 +1135,9 @@ Network          Next Hop            Path
         }
 
         async function callGeminiAPI(promptText) {
+            if (!AI_CONFIGURED) {
+                throw new Error('Gemini API key is not configured.');
+            }
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
             const payload = {
                 contents: [{ parts: [{ text: promptText }] }],
@@ -1016,6 +1308,8 @@ Network          Next Hop            Path
 
         // Init
         window.onload = () => {
+            bindUIEvents();
+            setAIConfiguredState();
             switchViewMode('logical');
             applyTransform(); 
         };

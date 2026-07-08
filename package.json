@@ -8,13 +8,17 @@
     "start": "next start",
     "lint": "eslint",
     "validate": "tsx scripts/validate-manifest.ts",
+    "import-aws-icons": "tsx scripts/import-aws-icons.ts",
+    "import-cisco-icons": "tsx scripts/import-cisco-icons.ts",
+    "import-brand-icons": "tsx scripts/import-brand-icons.ts",
     "prebuild": "npm run validate"
   },
   "dependencies": {
     "@radix-ui/react-select": "^2.3.2",
     "next": "16.2.10",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "roughjs": "^4.6.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -23,6 +27,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
+    "simple-icons": "^15.9.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.0",
     "typescript": "^5"

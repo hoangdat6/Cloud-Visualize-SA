@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS MGN Architecture Flow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pangolin&family=Klee+One:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg-paper:#fdfaf3; --grid-line:#efede7; --grid-line-vertical:#f0ebe1; --text-main:#333333; --box-yellow-bg:#fffcf0; --box-blue-bg:#f0f7fd; --box-green-bg:#f0fdf4; --box-orange-bg:#fff5e6; }
+        body { font-family:'Pangolin','Klee One',cursive,sans-serif!important; background-color:var(--bg-paper)!important; color:var(--text-main)!important; background-image:linear-gradient(var(--grid-line) 1px,transparent 1px),linear-gradient(90deg,var(--grid-line-vertical) 1px,transparent 1px)!important; background-size:20px 20px!important; }
+        .bg-slate-950,.bg-slate-900,.bg-slate-900\/90,.bg-slate-900\/80,.bg-slate-900\/60,.bg-slate-950\/70,.bg-slate-950\/50,.bg-slate-800,.bg-slate-800\/30,.bg-slate-800\/20 { background-color:rgba(255,255,255,.86)!important; }
+        .text-white,.text-slate-100,.text-slate-200,.text-slate-300 { color:var(--text-main)!important; }
+        .text-slate-400,.text-slate-500 { color:#666!important; }
+        .border-slate-800,.border-slate-700,.border-white\/10,.border-white\/5 { border-color:var(--text-main)!important; border-width:2px!important; }
+        .rounded-xl,.rounded-2xl,.rounded-lg { border-radius:10px 15px 8px 12px/12px 8px 15px 10px!important; }
+        .shadow-xl,.shadow-2xl,.shadow-lg { box-shadow:3px 3px 0 rgba(0,0,0,.1)!important; }
+        @keyframes slideRight {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        @keyframes slideDown {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.95); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-slide-right-fast { animation: slideRight 0.5s linear infinite; }
+        .animate-slide-right-medium { animation: slideRight 1s linear infinite; }
+        .animate-slide-right-slow { animation: slideRight 2.5s linear infinite; }
+        .animate-slide-down-fast { animation: slideDown 1s linear infinite; }
+        .animate-pop-in { animation: popIn 0.3s ease-out forwards; }
+        .animate-pop-in-slow { animation: popIn 0.4s ease-out forwards; }
+        @keyframes flowRight {
+            0% { left: 0; opacity: 1; }
+            100% { left: 100%; opacity: 0; }
+        }
+        .animate-flow-dot { animation: flowRight 1.2s linear infinite; }
+        .animate-flow-dot-slow { animation: flowRight 2s linear infinite; }
+        .ec2-appear { animation: popIn 0.5s ease-out forwards; }
+        .service-card-icon { width: 1.5rem; height: 1.5rem; flex-shrink: 0; }
+        .service-card-icon-lg { width: 1.75rem; height: 1.75rem; flex-shrink: 0; }
+        @keyframes dash { to { stroke-dashoffset: -40; } }
+        .active-route { stroke-dasharray: 10, 5; animation: dash 0.8s linear infinite; }
+        .glow-purple { filter: drop-shadow(0 0 6px rgba(147, 51, 234, 0.7)); }
+        .glow-orange { filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.7)); }
+        .flow-pipe-label { font-size: 8px; font-weight: 700; fill: #6b21a8; }
+        .flow-lane-card {
+            min-width: 150px;
+            border: 1.5px solid #9f9488;
+            border-radius: 10px 15px 8px 12px/12px 8px 15px 10px;
+            box-shadow: 2px 2px 0 rgba(109,98,87,.12);
+            background: rgba(255,255,255,.88);
+            padding: 5px 8px;
+            line-height: 1.15;
+        }
+        .flow-lane-title {
+            display: block;
+            font-size: 9px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        .flow-lane-desc {
+            display: block;
+            margin-top: 2px;
+            font-size: 7px;
+            color: #6b6258;
+            white-space: nowrap;
+        }
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image:
+                linear-gradient(to right, rgba(30, 41, 59, 0.25) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(30, 41, 59, 0.25) 1px, transparent 1px);
+        }
+        #svg-container { cursor: grab; }
+        #svg-container:active { cursor: grabbing; }
+        #zoom-pan-group { transition: transform 0.05s ease-out; transform-origin: 0 0; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    
+
+    /* Sketchnote normalization: remove legacy dark dashboard surfaces. */
+    html { background: var(--bg-paper) !important; color: var(--text-main) !important; }
+    body, main, header, aside, section { color: var(--text-main) !important; }
+    [class*="bg-sky-950"], [class*="bg-emerald-950"], [class*="bg-orange-950"], [class*="bg-violet-950"],
+    [class*="bg-amber-950"], [class*="bg-red-950"], [class*="bg-indigo"], [class*="bg-purple-950"],
+    [class*="bg-cyan-950"], [class*="bg-rose-950"], [class*="bg-[#"], [class*="radial-gradient"],
+    [class*="from-slate"], [class*="to-slate"], [class*="via-slate"] {
+      background: transparent !important;
+      background-color: transparent !important;
+      background-image: none !important;
+    }
+    [class*="bg-sky-500"], [class*="bg-cyan-500"], [class*="bg-blue-600"] { background-color: #e8f0fe !important; color: var(--text-main) !important; }
+    [class*="bg-orange-500"], [class*="bg-amber-500"] { background-color: #fff5e6 !important; color: var(--text-main) !important; }
+    [class*="bg-emerald-500"], [class*="bg-green-500"] { background-color: #f0fdf4 !important; color: var(--text-main) !important; }
+    [class*="text-sky"], [class*="text-cyan"], [class*="text-blue"], [class*="text-indigo"], [class*="text-purple"],
+    [class*="text-violet"], [class*="text-orange"], [class*="text-amber"], [class*="text-emerald"], [class*="text-green"], [class*="text-red"], [class*="text-rose"] {
+      color: var(--text-main) !important;
+    }
+    [class*="border-sky"], [class*="border-cyan"], [class*="border-blue"], [class*="border-orange"], [class*="border-amber"],
+    [class*="border-emerald"], [class*="border-green"], [class*="border-violet"], [class*="border-purple"], [class*="border-red"], [class*="border-rose"] {
+      border-color: #9f9488 !important;
+    }
+    aside, header, .node, [data-component], [data-node], [class*="scenario-btn"], [class*="mode-btn"], [class*="step-btn"] {
+      background-color: rgba(255,255,255,.72) !important;
+      border-color: #9f9488 !important;
+      box-shadow: 2px 2px 0 rgba(109,98,87,.12) !important;
+    }
+    section[class*="relative"], #svg-container, #svg-container-wrapper {
+      background-color: rgba(253,250,243,.78) !important;
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-vertical) 1px, transparent 1px) !important;
+      background-size: 20px 20px !important;
+    }
+    svg rect[fill="#082f49"], svg rect[fill="#052e16"], svg rect[fill="#0f172a"], svg rect[fill="#111827"] { fill: #f0f7fd !important; fill-opacity: .82 !important; }
+    svg rect[fill="#431407"], svg rect[fill="#7c2d12"] { fill: #fff5e6 !important; fill-opacity: .84 !important; }
+    svg rect[fill="#312e81"], svg rect[fill="#581c87"], svg rect[fill="#2e1065"] { fill: #f4f0ff !important; fill-opacity: .84 !important; }
+    svg rect[fill="#064e3b"], svg rect[fill="#052e16"] { fill: #f0fdf4 !important; fill-opacity: .84 !important; }
+    svg text { fill: var(--text-main) !important; }
+    pre, code { background: #fffaf0 !important; color: var(--text-main) !important; border-color: #e6d38e !important; }
+    ::-webkit-scrollbar-thumb { background: #c9bba8 !important; }
+
+
+    /* System-design visualizer line grammar on top of sketchnote theme. */
+    svg path[id*="base"], svg path[id*="path-"][id*="base"] {
+      stroke: #b9afa3 !important;
+      stroke-width: 2.25 !important;
+      stroke-linecap: round !important;
+      opacity: .78 !important;
+      stroke-dasharray: 7 7 !important;
+      filter: none !important;
+    }
+    svg path[id*="inner"] {
+      stroke-width: 0 !important;
+      opacity: 0 !important;
+    }
+    svg path[id*="active"], svg path.active-route {
+      stroke-width: 3 !important;
+      stroke-linecap: round !important;
+      stroke-dasharray: 9 6 !important;
+      opacity: .95 !important;
+      filter: none !important;
+    }
+    svg path:not([id*="base"]):not([id*="inner"]):not([id*="active"]).active-route {
+      stroke-width: 3 !important;
+    }
+    svg marker polygon { fill: currentColor; }
+    svg text[id*="label"], svg text {
+      paint-order: stroke !important;
+      stroke: rgba(253,250,243,.9) !important;
+      stroke-width: 3px !important;
+      stroke-linejoin: round !important;
+      font-weight: 700 !important;
+    }
+    svg rect {
+      stroke-width: 1.5 !important;
+      rx: 12 !important;
+    }
+    .node, [data-component], [data-node] {
+      min-height: 76px;
+      border-width: 1.5px !important;
+      background-color: rgba(255,255,255,.84) !important;
+    }
+    .node img, [data-component] img, [data-node] img {
+      filter: saturate(.85) contrast(.95);
+    }
+    .node.active, [data-component].active, [data-node].active {
+      outline: 2px dashed #4fa3b8 !important;
+      outline-offset: 3px !important;
+      box-shadow: 3px 3px 0 rgba(79,163,184,.16) !important;
+    }
+
+
+    /* FINAL GLOBAL SIMULATION STYLE: sketchnote shell + system-design lines. */
+    :root {
+      --sim-paper: #fdfaf3;
+      --sim-ink: #333333;
+      --sim-muted: #6b6258;
+      --sim-line: #9f9488;
+      --sim-blue: #1f9bb4;
+      --sim-teal: #16a394;
+      --sim-yellow: #d4a514;
+      --sim-orange: #e1782f;
+      --sim-green: #2f8f5b;
+      --sim-red: #c94c4c;
+      --sim-blue-fill: rgba(31,155,180,.12);
+      --sim-yellow-fill: rgba(245,196,72,.16);
+      --sim-green-fill: rgba(47,143,91,.13);
+      --sim-orange-fill: rgba(225,120,47,.13);
+      --sim-purple-fill: rgba(137,112,190,.12);
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-vertical) 1px, transparent 1px),
+        radial-gradient(45rem 26rem at 20% 10%, rgba(245,196,72,.12), transparent 62%),
+        radial-gradient(38rem 24rem at 80% 80%, rgba(31,155,180,.10), transparent 60%);
+      background-size: 20px 20px, 20px 20px, auto, auto;
+      pointer-events: none;
+    }
+    header, aside, section, [class*="rounded"], [class*="border"] {
+      border-color: var(--sim-line) !important;
+    }
+    header, aside, main > section, .node, [data-component], [data-node], [class*="scenario-btn"], [class*="mode-btn"], [class*="step-btn"], [class*="service-card"] {
+      color: var(--sim-ink) !important;
+      background: rgba(255,255,255,.68) !important;
+      box-shadow: 2px 2px 0 rgba(109,98,87,.12) !important;
+    }
+    main > section, #svg-container, #svg-container-wrapper {
+      background:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-vertical) 1px, transparent 1px),
+        rgba(253,250,243,.84) !important;
+      background-size: 20px 20px, 20px 20px, auto !important;
+    }
+    body [class*="bg-[radial-gradient"], body [class*="from-slate"], body [class*="to-slate"], body [class*="via-slate"], body [class*="bg-slate"], body [class*="bg-gray-9"], body [class*="bg-black"] {
+      background: transparent !important;
+      background-color: transparent !important;
+      background-image: none !important;
+    }
+    body [class*="text-slate"], body [class*="text-white"], body [class*="text-gray-1"], body [class*="text-gray-2"] { color: var(--sim-ink) !important; }
+    body [class*="text-sky"], body [class*="text-cyan"], body [class*="text-blue"] { color: var(--sim-blue) !important; }
+    body [class*="text-emerald"], body [class*="text-green"] { color: var(--sim-green) !important; }
+    body [class*="text-orange"], body [class*="text-amber"] { color: var(--sim-orange) !important; }
+    body [class*="text-red"], body [class*="text-rose"] { color: var(--sim-red) !important; }
+    body [class*="text-violet"], body [class*="text-purple"], body [class*="text-indigo"] { color: #7258a7 !important; }
+    svg rect[fill="#020617"], svg rect[fill="#030712"], svg rect[fill="#0f172a"], svg rect[fill="#111827"], svg rect[fill="#1e293b"], svg rect[fill="#082f49"], svg rect[fill="#052e16"], svg rect[fill="#431407"], svg rect[fill="#312e81"], svg rect[fill="#581c87"], svg rect[fill="#064e3b"] {
+      fill: rgba(255,255,255,.58) !important;
+      stroke: var(--sim-line) !important;
+      fill-opacity: 1 !important;
+    }
+    svg rect[stroke="#0c4a6e"], svg rect[stroke="#14532d"], svg rect[stroke="#9a3412"], svg rect[stroke="#1e293b"], svg rect[stroke="#0f766e"] {
+      stroke: var(--sim-line) !important;
+    }
+    svg path[id*="base"], svg path[id*="inner"] {
+      stroke: var(--sim-line) !important;
+      stroke-width: 2 !important;
+      stroke-dasharray: 7 7 !important;
+      opacity: .75 !important;
+    }
+    svg path[id*="inner"] { opacity: 0 !important; }
+    svg path[id*="active"], svg path.active-route {
+      stroke-width: 3 !important;
+      stroke-dasharray: 9 6 !important;
+      filter: none !important;
+    }
+    svg text {
+      fill: var(--sim-ink) !important;
+      stroke: rgba(253,250,243,.92) !important;
+      stroke-width: 3px !important;
+      paint-order: stroke !important;
+    }
+    .node, [data-component], [data-node] {
+      background: rgba(255,255,255,.82) !important;
+      border: 1.5px solid var(--sim-line) !important;
+    }
+    .node.active, [data-component].active, [data-node].active {
+      outline: 2px dashed var(--sim-blue) !important;
+      outline-offset: 3px !important;
+    }
+
+
+    /* FINAL COLORFUL SKETCHNOTE FILL: avoid plain-white simulator panels. */
+    header {
+      background: linear-gradient(90deg, rgba(244,240,255,.92), rgba(255,252,240,.9)) !important;
+    }
+    aside:first-of-type, main > aside:first-child, .left-panel {
+      background: linear-gradient(180deg, rgba(255,252,240,.94), rgba(244,240,255,.72)) !important;
+    }
+    aside:last-of-type, main > aside:last-child, .right-panel {
+      background: linear-gradient(180deg, rgba(240,247,253,.94), rgba(232,240,254,.72)) !important;
+    }
+    main > section, #svg-container, #svg-container-wrapper {
+      background:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-vertical) 1px, transparent 1px),
+        linear-gradient(135deg, rgba(240,247,253,.78), rgba(255,252,240,.72) 45%, rgba(240,253,244,.62)) !important;
+      background-size: 20px 20px, 20px 20px, auto !important;
+    }
+    [class*="step-btn"], [class*="scenario-btn"], [class*="mode-btn"] {
+      background: rgba(255,248,214,.88) !important;
+    }
+    [class*="step-btn"]:nth-child(2n), [class*="scenario-btn"]:nth-child(2n), [class*="mode-btn"]:nth-child(2n) {
+      background: rgba(240,247,253,.88) !important;
+    }
+    [class*="step-btn"]:nth-child(3n), [class*="scenario-btn"]:nth-child(3n), [class*="mode-btn"]:nth-child(3n) {
+      background: rgba(240,253,244,.88) !important;
+    }
+    .node, [data-component], [data-node] {
+      background: rgba(240,247,253,.9) !important;
+    }
+    .node:nth-of-type(2n), [data-component]:nth-of-type(2n), [data-node]:nth-of-type(2n) {
+      background: rgba(255,245,230,.9) !important;
+    }
+    .node:nth-of-type(3n), [data-component]:nth-of-type(3n), [data-node]:nth-of-type(3n) {
+      background: rgba(240,253,244,.9) !important;
+    }
+    .node:nth-of-type(4n), [data-component]:nth-of-type(4n), [data-node]:nth-of-type(4n) {
+      background: rgba(244,240,255,.9) !important;
+    }
+    [class*="bg-amber"], [class*="bg-yellow"] { background-color: rgba(255,248,214,.9) !important; }
+    [class*="bg-sky"], [class*="bg-cyan"], [class*="bg-blue"] { background-color: rgba(240,247,253,.9) !important; }
+    [class*="bg-emerald"], [class*="bg-green"] { background-color: rgba(240,253,244,.9) !important; }
+    [class*="bg-orange"] { background-color: rgba(255,245,230,.9) !important; }
+    [class*="bg-violet"], [class*="bg-purple"], [class*="bg-indigo"] { background-color: rgba(244,240,255,.9) !important; }
+    [class*="bg-red"], [class*="bg-rose"] { background-color: rgba(253,234,234,.9) !important; }
+    svg rect[fill], svg path[fill]:not([fill="none"]) {
+      fill-opacity: .86 !important;
+    }
+    svg rect:nth-of-type(4n+1) { fill: #f0f7fd !important; }
+    svg rect:nth-of-type(4n+2) { fill: #fff5e6 !important; }
+    svg rect:nth-of-type(4n+3) { fill: #f0fdf4 !important; }
+    svg rect:nth-of-type(4n+4) { fill: #f4f0ff !important; }
+    .section-header, h2, h3 {
+      text-shadow: 1px 1px 0 rgba(255,255,255,.8);
+    }
+</style>
+</head>
+<body class="h-full bg-slate-950 text-slate-100 flex flex-col font-sans antialiased overflow-hidden">
+
+    <header class="shrink-0 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md px-6 py-3 flex items-center gap-4 z-20">
+        <div class="h-11 w-11 rounded-xl bg-slate-950 border border-slate-700 flex items-center justify-center p-2">
+            <img src="/icons/aws/services/migration-modernization/aws-application-migration-service.svg" alt="" class="h-7 w-7" />
+        </div>
+        <div>
+            <h1 class="text-base font-bold tracking-wide text-white">AWS MGN — Block Replication &amp; Cutover Lifecycle</h1>
+            <p class="text-[11px] text-slate-400 mt-0.5">9 giai đoạn lifecycle · Control plane TCP 443 vs Data plane TCP 1500 · Canvas zoom/pan</p>
+        </div>
+    </header>
+
+    <main class="flex-1 flex overflow-hidden p-4 gap-4 min-h-0">
+
+        <!-- LEFT: Step walkthrough -->
+        <aside class="w-[360px] shrink-0 flex flex-col bg-slate-900/80 border border-slate-800 rounded-xl shadow-xl overflow-hidden">
+            <div class="p-4 border-b border-slate-800 shrink-0">
+                <span class="text-[10px] font-bold text-orange-400 uppercase tracking-widest">Lifecycle walkthrough</span>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4 min-h-0">
+                <div id="progress-bar" class="flex gap-0.5 shrink-0"></div>
+                <span id="step-counter" class="text-[10px] font-bold text-orange-400 uppercase tracking-widest">Giai đoạn 1</span>
+                <h2 id="step-title" class="text-lg font-bold text-white leading-snug">Tiêu đề bước</h2>
+                <p id="step-description" class="text-slate-300 text-[13px] leading-relaxed">Mô tả bước...</p>
+                <div class="bg-blue-950/40 border border-blue-800/60 rounded-xl p-3 shrink-0">
+                    <p id="step-insight" class="text-[12px] text-blue-100 leading-relaxed font-medium">Thông tin bổ sung...</p>
+                </div>
+            </div>
+            <div class="p-4 border-t border-slate-800 flex gap-2 shrink-0">
+                <button id="btn-prev" class="px-4 py-2 rounded-lg font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 transition text-sm">Trở lại</button>
+                <button id="btn-next" class="flex-1 px-4 py-2 rounded-lg font-medium text-white bg-orange-600 hover:bg-orange-500 disabled:opacity-40 transition text-sm shadow-lg shadow-orange-900/30">Tiếp theo</button>
+            </div>
+        </aside>
+
+        <!-- CENTER: Zoom/Pan Canvas -->
+        <section class="flex-1 min-w-0 bg-slate-900/60 rounded-xl border border-slate-800 relative overflow-hidden shadow-2xl bg-grid" id="canvas-wrapper">
+            <div class="absolute top-3 left-4 z-10 text-[10px] font-bold tracking-[0.18em] uppercase text-slate-500 pointer-events-none">
+                MGN topology canvas · kéo để pan · scroll để zoom
+            </div>
+            <div class="absolute top-3 right-3 z-10 flex flex-col gap-1.5 bg-slate-900/90 p-1.5 rounded-lg border border-slate-700 backdrop-blur-md">
+                <button data-action="zoom" data-delta="0.1" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded text-slate-300 transition" title="Zoom In">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m6-6H6"/></svg>
+                </button>
+                <button data-action="zoom" data-delta="-0.1" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded text-slate-300 transition" title="Zoom Out">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14"/></svg>
+                </button>
+                <button data-action="reset-zoom" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded text-slate-300 text-[9px] font-bold transition" title="Reset">1:1</button>
+            </div>
+
+            <div id="svg-container" class="absolute inset-0 overflow-hidden">
+                <div id="zoom-pan-group" class="relative" style="width: 1500px; height: 900px;">
+                    <div id="diagram-root" class="w-full h-full flex flex-col relative p-4">
+
+                <!-- TOP: 3 columns + SVG pipes (DX style) -->
+                <div id="diagram-top-row" class="flex items-stretch gap-0 relative flex-1 min-h-[820px]">
+
+                <!-- SVG overlay: pipes xuyên DC → Network → AWS -->
+                <svg id="mgn-flow-svg" class="absolute inset-0 w-full h-full pointer-events-none z-0" preserveAspectRatio="none">
+                    <defs>
+                        <marker id="arrow-purple" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                            <polygon points="0 0, 8 3, 0 6" fill="#9333ea"/>
+                        </marker>
+                    </defs>
+                    <!-- TCP 443 control (upper arc) -->
+                    <path id="path-control-base" stroke="#fed7aa" stroke-width="3" fill="none" opacity="0.35"/>
+                    <path id="path-control-active" stroke="#f97316" stroke-width="4" fill="none" class="hidden glow-orange active-route"/>
+                    <!-- TCP 1500 data (thick pipe like DX fiber) -->
+                    <path id="path-data-outer" stroke="#cbd5e1" stroke-width="16" stroke-linecap="round" fill="none" opacity="0.5"/>
+                    <path id="path-data-inner" stroke="#e9d5ff" stroke-width="10" stroke-linecap="round" fill="none" opacity="0.6"/>
+                    <path id="path-data-active" stroke="#9333ea" stroke-width="5" fill="none" class="hidden glow-purple active-route" marker-end="url(#arrow-purple)"/>
+                    <text id="label-data-pipe" class="flow-pipe-label" text-anchor="middle" opacity="0">Data plane · TCP 1500 · replicated blocks</text>
+                    <text id="label-control-pipe" class="flow-pipe-label" fill="#c2410c" text-anchor="middle" opacity="0">Control plane · TCP 443 · API/config/status</text>
+                    <circle id="anim-packet-data" r="6" fill="#fff" stroke="#9333ea" stroke-width="2" style="display:none" class="glow-purple"/>
+                    <circle id="anim-packet-control" r="5" fill="#fff" stroke="#f97316" stroke-width="2" style="display:none" class="glow-orange"/>
+                </svg>
+
+                <!-- ON-PREM -->
+                <div class="w-[32%] bg-emerald-50/50 rounded-xl border-2 border-emerald-200 p-4 flex flex-col relative shadow-sm z-10">
+                    <div class="absolute top-0 left-4 -translate-y-1/2 bg-emerald-100 border border-emerald-300 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded">Corporate Data Center</div>
+
+                    <div id="iam-badge" data-component="iam_settings" class="interactive-element hidden mt-4 mb-2 bg-amber-50 border border-amber-300 rounded-lg p-2 cursor-pointer hover:border-amber-500">
+                        <span class="text-[10px] font-bold text-amber-900">IAM + Replication Settings</span>
+                        <span class="text-[8px] text-amber-700 block">Staging subnet, EBS type, bandwidth</span>
+                    </div>
+
+                    <div id="source-server-box" class="flex-grow flex flex-col bg-white border-2 rounded-xl p-3 relative transition-all border-emerald-400 overflow-visible">
+                        <div class="text-center mb-2 pb-2 border-b border-slate-100 flex justify-center items-center gap-2">
+                            <img src="/icons/third-party/cisco/topology/workstation.svg" alt="" class="service-card-icon" />
+                            <span class="font-bold text-[13px] text-slate-800">Source Server</span>
+                            <span id="source-offline-badge" class="hidden text-[9px] font-bold text-red-500 bg-red-50 px-1 rounded border border-red-200">OFFLINE</span>
+                        </div>
+
+                        <!-- I/O FLOW DIAGRAM -->
+                        <div class="relative flex flex-col gap-1">
+                            <!-- L1: App -->
+                            <div data-component="io_stack" class="interactive-element bg-slate-50 border border-slate-200 rounded-lg p-2 cursor-pointer hover:border-slate-400 relative z-10">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-[11px] font-bold text-slate-700">App &amp; OS (RAM)</span>
+                                    <span class="text-[8px] bg-slate-200 px-1 rounded text-slate-600">L7–L4</span>
+                                </div>
+                                <div id="ram-data-pulse" class="mt-1 flex gap-1 h-1 opacity-0">
+                                    <div class="flex-1 bg-emerald-400 animate-pulse"></div>
+                                    <div class="flex-1 bg-emerald-400 animate-pulse"></div>
+                                </div>
+                            </div>
+
+                            <!-- Arrow: RAM → Block I/O -->
+                            <div class="flex justify-center relative h-4">
+                                <div class="w-0.5 h-full bg-slate-300 relative overflow-hidden rounded-full">
+                                    <div id="main-io-flow" class="absolute top-0 left-0 w-full bg-emerald-500 animate-slide-down-fast" style="height:8px"></div>
+                                </div>
+                                <span class="absolute left-2 top-0 text-[8px] font-bold text-emerald-700 bg-white px-1 rounded">Write I/O ↓</span>
+                            </div>
+
+                            <!-- L2: Block I/O + Filter Driver split -->
+                            <div class="grid grid-cols-2 gap-2 relative">
+                                <div class="bg-slate-100 border border-slate-300 rounded-lg p-2 flex flex-col items-center justify-center min-h-[52px]">
+                                    <span class="text-[9px] font-bold text-slate-700">Block I/O Layer</span>
+                                    <span class="text-[7px] text-slate-500">OS storage stack</span>
+                                </div>
+                                <div data-component="agent_filter" class="interactive-element bg-purple-50 border-2 border-purple-300 rounded-lg p-1.5 cursor-pointer hover:border-purple-500 relative">
+                                    <span class="text-[9px] font-bold text-purple-800 text-center block">Replication Agent</span>
+                                    <span class="text-[7px] text-purple-600 block text-center">Filter Driver (intercept)</span>
+                                    <span id="agent-active-ping" class="hidden absolute -top-1 -right-1 flex h-2 w-2">
+                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Fork arrows -->
+                            <div class="grid grid-cols-2 gap-2 h-5 relative">
+                                <div class="flex justify-center">
+                                    <div class="w-0.5 h-full bg-emerald-400 relative overflow-hidden">
+                                        <div id="disk-write-flow" class="absolute top-0 w-full bg-emerald-600 animate-slide-down-fast" style="height:6px"></div>
+                                    </div>
+                                </div>
+                                <div id="intercept-path" class="flex justify-center opacity-0">
+                                    <div class="w-0.5 h-full bg-purple-400 relative overflow-hidden">
+                                        <div class="absolute top-0 w-full bg-purple-600 animate-slide-down-fast" style="height:6px"></div>
+                                    </div>
+                                </div>
+                                <span class="absolute left-1 bottom-0 text-[7px] text-emerald-600 font-bold">↓ Disk</span>
+                                <span class="absolute right-1 bottom-0 text-[7px] text-purple-600 font-bold">↓ Capture</span>
+                            </div>
+
+                            <!-- L3: Disk + Agent Pipeline -->
+                            <div class="grid grid-cols-2 gap-2">
+                                <div id="physical-disk" data-component="physical_disk" class="interactive-element bg-slate-200 border-2 border-slate-400 rounded-lg p-2 cursor-pointer min-h-[56px] flex flex-col justify-center">
+                                    <span class="text-[10px] font-bold text-slate-800">Physical Disk</span>
+                                    <span class="text-[7px] text-slate-600">Blocks persisted</span>
+                                    <span id="disk-read-badge" class="hidden mt-1 text-[7px] font-bold text-orange-700 bg-orange-100 px-1 rounded border border-orange-300 text-center">↑ Initial Read</span>
+                                    <div id="disk-read-flow" class="hidden mt-1 h-1 bg-orange-200 rounded overflow-hidden relative">
+                                        <div class="absolute inset-y-0 w-1/3 bg-orange-500 animate-slide-right-fast"></div>
+                                    </div>
+                                </div>
+                                <div id="flow-anchor-agent" data-component="agent_process" class="interactive-element bg-purple-100 border border-purple-300 rounded-lg p-1.5 cursor-pointer min-h-[56px] flex flex-col justify-center relative">
+                                    <span class="text-[8px] font-bold text-purple-900 text-center">Agent Pipeline</span>
+                                    <div class="flex justify-center gap-0.5 mt-1 flex-wrap">
+                                        <span class="text-[7px] bg-white border border-purple-200 rounded px-1">Queue</span>
+                                        <span class="text-[7px] text-purple-400">→</span>
+                                        <span class="text-[7px] bg-white border border-purple-200 rounded px-1">Compress</span>
+                                        <span class="text-[7px] text-purple-400">→</span>
+                                        <span class="text-[7px] bg-white border border-purple-200 rounded px-1">Encrypt</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NETWORK CORRIDOR: two explicit system-design lanes -->
+                <div class="w-[14%] flex flex-col relative z-10 pointer-events-none">
+                    <div class="absolute inset-x-3 top-16 border-t-2 border-dashed border-[#d8cbb8]"></div>
+                    <div class="absolute inset-x-3 top-1/2 border-t-2 border-dashed border-[#d8cbb8]"></div>
+                    <div class="absolute top-3 left-1/2 -translate-x-1/2 text-[8px] font-bold uppercase tracking-[0.16em] text-[#6b6258] whitespace-nowrap">
+                        Network corridor
+                    </div>
+                    <div data-component="network_control" class="interactive-element pointer-events-auto absolute top-[13%] left-1/2 -translate-x-1/2 cursor-pointer z-20 text-center">
+                        <div id="control-443-label" class="flow-lane-card opacity-60">
+                            <span class="flow-lane-title text-orange-700">Control plane · TCP 443</span>
+                            <span class="flow-lane-desc">Agent ↔ MGN API</span>
+                        </div>
+                    </div>
+                    <div data-component="network_data" class="interactive-element pointer-events-auto absolute top-[38%] left-1/2 -translate-x-1/2 cursor-pointer z-20 text-center">
+                        <div class="flow-lane-card">
+                            <span id="network-label-heavy" class="hidden text-[8px] font-bold text-orange-700 bg-orange-50 px-1 rounded border border-orange-200 mb-1">Initial Sync</span>
+                            <span id="network-label-light" class="hidden text-[8px] font-bold text-purple-700 bg-purple-50 px-1 rounded border border-purple-200 mb-1">Delta Sync</span>
+                            <span class="flow-lane-title text-purple-800">Data plane · TCP 1500</span>
+                            <span class="flow-lane-desc">Blocks → Replication Server</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AWS -->
+                <div class="flex-grow bg-orange-50/40 rounded-xl border-2 border-orange-200 p-4 relative flex flex-col gap-3 z-10">
+                    <div class="absolute top-0 left-4 -translate-y-1/2 bg-orange-100 border border-orange-300 text-orange-800 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1">
+                        <img src="/icons/aws/services/networking-content-delivery/amazon-virtual-private-cloud.svg" alt="" class="w-3.5 h-3.5" />
+                        AWS Region (VPC)
+                    </div>
+
+                    <!-- CONTROL PLANE STRIP -->
+                    <div id="control-plane-strip" class="flex gap-2 mt-3 pt-1 border-b border-orange-200 pb-3 opacity-40">
+                        <div id="flow-anchor-mgn" data-component="mgn_service" class="interactive-element flex-1 bg-orange-100 border border-orange-300 rounded-lg p-2 text-center cursor-pointer hover:border-orange-500 relative">
+                            <div class="flex items-center justify-center gap-1.5 mb-0.5">
+                                <img src="/icons/aws/services/migration-modernization/aws-application-migration-service.svg" alt="" class="service-card-icon" />
+                                <span class="text-[10px] font-bold text-orange-900">MGN Service</span>
+                            </div>
+                            <span class="text-[8px] text-orange-700 block">Control Plane API</span>
+                            <span id="mgn-ping" class="hidden text-[7px] text-green-600 font-bold">● Active</span>
+                        </div>
+                        <div data-component="s3" class="interactive-element flex-1 bg-green-50 border border-green-200 rounded-lg p-2 text-center cursor-pointer hover:border-green-400 opacity-50">
+                            <div class="flex items-center justify-center gap-1.5 mb-0.5">
+                                <img src="/icons/aws/services/storage/amazon-simple-storage-service.svg" alt="" class="service-card-icon" />
+                                <span class="text-[10px] font-bold text-green-900">Amazon S3</span>
+                            </div>
+                            <span class="text-[8px] text-green-700 block">Snapshots &amp; components</span>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 flex-grow">
+                        <!-- STAGING -->
+                        <div class="w-[44%] border-2 border-dashed border-slate-300 bg-white/70 rounded-xl p-3 relative flex flex-col">
+                            <div class="absolute top-2 left-2 text-[9px] font-bold text-slate-500 uppercase">Staging Area Subnet</div>
+                            <div id="staging-content-area" class="mt-5 flex flex-col justify-center flex-grow gap-2">
+                                <div id="flow-anchor-rep" data-component="rep_server" class="interactive-element bg-blue-50 border border-blue-200 rounded-lg p-2 cursor-pointer hover:border-blue-400 relative">
+                                    <div class="flex items-center gap-1.5 mb-0.5">
+                                        <img src="/icons/aws/services/compute/amazon-ec2.svg" alt="" class="service-card-icon" />
+                                        <span class="text-[10px] font-bold text-blue-900">Replication Server</span>
+                                    </div>
+                                    <span class="text-[8px] text-blue-700 block">Nhận TCP 1500 → Decrypt → EBS</span>
+                                    <span id="rep-server-ping" class="hidden text-[7px] text-blue-600 font-bold">● Replicating</span>
+                                </div>
+                                <div id="conversion-server-box" data-component="conversion_server" class="interactive-element hidden bg-indigo-50 border border-indigo-200 rounded-lg p-2 cursor-pointer">
+                                    <div class="flex items-center gap-1.5 mb-0.5">
+                                        <img src="/icons/aws/services/compute/amazon-ec2.svg" alt="" class="service-card-icon" />
+                                        <span class="text-[10px] font-bold text-indigo-900">Conversion Server</span>
+                                    </div>
+                                    <span class="text-[8px] text-indigo-700 block">Driver injection (ENA/NVMe)</span>
+                                </div>
+                                <div class="h-4 flex justify-center"><div class="w-0.5 h-full bg-slate-200"><div id="staging-io-down" class="hidden w-full h-full bg-blue-500 animate-slide-down-fast"></div></div></div>
+                                <div data-component="staging_ebs" class="interactive-element border-2 bg-slate-50 border-slate-300 rounded-lg p-2 cursor-pointer">
+                                    <div class="flex gap-1">
+                                        <div class="flex-1 bg-white border rounded p-1 text-center">
+                                            <img id="staging-vol-icon" src="/icons/aws/services/storage/amazon-elastic-block-store.svg" alt="" class="w-4 h-4 mx-auto opacity-50" />
+                                            <span class="text-[8px] font-bold">Staging Vol</span>
+                                        </div>
+                                    </div>
+                                    <span class="text-[7px] text-slate-500 italic block text-center mt-1">EBS type từ Replication Settings</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TARGET SUBNET -->
+                        <div id="target-subnet-area" class="flex-1 flex flex-col gap-2 border-2 border-slate-200 rounded-xl p-2 bg-slate-50/50 relative min-h-[220px]">
+                            <div class="absolute top-1 left-2 text-[8px] font-bold text-slate-500 uppercase">Target Subnet</div>
+
+                            <div data-component="launch_settings" class="interactive-element mt-4 bg-white border border-slate-200 rounded-lg p-1.5 cursor-pointer hover:border-slate-400">
+                                <span class="text-[9px] font-bold text-slate-700">Launch Settings</span>
+                                <span class="text-[7px] text-slate-500 block">Instance type, subnet đích, SG, key</span>
+                            </div>
+
+                            <div id="conversion-snapshot-box" data-component="conversion" class="interactive-element hidden bg-indigo-50 border-2 border-indigo-300 rounded-lg p-2 cursor-pointer">
+                                <span class="text-[9px] font-bold text-indigo-900">EBS Snapshot → Convert</span>
+                                <span class="text-[7px] text-indigo-600 block">S3 snapshot → bootable volume</span>
+                            </div>
+
+                            <div id="delta-notice" class="hidden text-[8px] font-bold text-blue-800 bg-blue-100 border-2 border-blue-300 rounded px-2 py-1.5 text-center animate-pulse">⚡ Delta Sync vẫn chạy — Source vẫn LIVE</div>
+
+                            <!-- Launch arrow indicator -->
+                            <div id="launch-arrow-test" class="hidden flex items-center gap-1 px-2">
+                                <span class="text-[8px] text-amber-700 font-bold">MGN Launch →</span>
+                                <div class="flex-1 h-0.5 bg-amber-300 relative overflow-hidden"><div class="absolute inset-0 bg-amber-500 animate-slide-right-fast"></div></div>
+                            </div>
+
+                            <!-- Test EC2 -->
+                            <div id="test-zone" class="border-2 border-dashed border-amber-400 bg-amber-50 rounded-xl p-2 min-h-[72px] transition-all">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-[9px] font-bold text-amber-800 uppercase">Test Instance</span>
+                                    <span id="test-zone-status" class="hidden text-[7px] font-bold bg-amber-500 text-white px-1.5 py-0.5 rounded-full animate-pulse">LAUNCHING</span>
+                                </div>
+                                <div id="test-empty" class="text-[9px] text-slate-400 italic text-center py-3">Chưa launch test</div>
+                                <div id="test-ec2-box" data-component="test_ec2" class="hidden interactive-element ec2-appear bg-white border-2 border-amber-500 rounded-lg p-2.5 cursor-pointer shadow-md ring-2 ring-amber-200">
+                                    <div class="flex items-center gap-2">
+                                        <div class="bg-amber-100 p-1.5 rounded-lg">
+                                            <img src="/icons/aws/services/compute/amazon-ec2.svg" alt="" class="service-card-icon-lg" />
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="flex justify-between items-center">
+                                                <span class="text-[11px] font-bold text-amber-900">Test EC2</span>
+                                                <span id="test-badge" class="text-[8px] font-bold bg-amber-400 text-amber-950 px-2 py-0.5 rounded">TESTING</span>
+                                            </div>
+                                            <span class="text-[8px] text-slate-600 block">Validate app trên AWS</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="launch-arrow-cutover" class="hidden flex items-center gap-1 px-2">
+                                <span class="text-[8px] text-green-700 font-bold">Cutover Launch →</span>
+                                <div class="flex-1 h-0.5 bg-green-300 relative overflow-hidden"><div class="absolute inset-0 bg-green-500 animate-slide-right-fast"></div></div>
+                            </div>
+
+                            <!-- Cutover EC2 -->
+                            <div id="cutover-zone" class="border-2 border-green-400 bg-green-50 rounded-xl p-2 min-h-[72px] transition-all">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-[9px] font-bold text-green-800 uppercase">Cutover / Production</span>
+                                    <span id="cutover-zone-status" class="hidden text-[7px] font-bold bg-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded-full animate-pulse">BUILDING</span>
+                                </div>
+                                <div id="cutover-empty" class="text-[9px] text-slate-400 italic text-center py-3">Đang chờ Launch Cutover...</div>
+                                <div id="cutover-ec2-box" data-component="cutover_ec2" class="hidden interactive-element ec2-appear bg-white border-2 border-green-600 rounded-lg p-2.5 cursor-pointer shadow-lg ring-2 ring-green-200">
+                                    <div class="flex items-center gap-2">
+                                        <div class="bg-green-100 p-1.5 rounded-lg">
+                                            <img src="/icons/aws/services/compute/amazon-ec2.svg" alt="" class="service-card-icon-lg" />
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="flex justify-between items-center">
+                                                <span class="text-[11px] font-bold text-green-900">Cutover EC2</span>
+                                                <span id="cutover-badge-live" class="hidden text-[8px] font-bold bg-green-500 text-white px-2 py-0.5 rounded animate-pulse">● LIVE</span>
+                                                <span id="cutover-badge-building" class="hidden text-[8px] font-bold bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded animate-pulse">BUILDING</span>
+                                            </div>
+                                            <span class="text-[8px] text-slate-600 block">Production — ENA/NVMe ready</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </div><!-- end top row -->
+
+                    </div><!-- end diagram-root -->
+                </div><!-- end zoom-pan-group -->
+            </div><!-- end svg-container -->
+        </section>
+
+        <!-- RIGHT: Inspector -->
+        <aside class="w-[360px] shrink-0 flex flex-col bg-slate-900/80 border border-slate-800 rounded-xl shadow-xl overflow-hidden">
+            <div class="p-4 border-b border-slate-800 shrink-0">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Giải phẫu Kỹ thuật</span>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 min-h-0 flex flex-col">
+                <div id="inspector-content" class="hidden animate-pop-in flex-1 flex flex-col">
+                    <h3 id="inspector-title" class="text-[15px] font-bold text-orange-400 mb-3 border-l-4 border-orange-500 pl-2">Title</h3>
+                    <p id="inspector-desc" class="text-slate-300 text-sm leading-relaxed bg-slate-950/70 p-4 rounded-xl border border-slate-800 flex-1">Description</p>
+                    <div class="mt-4 flex justify-end shrink-0">
+                        <button id="btn-close-inspector" class="text-[12px] font-bold text-slate-500 hover:text-slate-300 underline">Đóng chi tiết</button>
+                    </div>
+                </div>
+                <div id="inspector-empty" class="flex flex-col items-center justify-center flex-1 text-center text-slate-500 px-2">
+                    <p class="text-[13px] font-medium leading-relaxed">Nhấp vào một thành phần trên sơ đồ (Agent, MGN Service, TCP 1500, ...) để xem chi tiết.</p>
+                </div>
+            </div>
+        </aside>
+
+    </main>
+
+    <script>
+        const COMPONENT_DETAILS = {
+            io_stack: { title: "Luồng ghi dữ liệu (I/O Stack)", description: "Ứng dụng ghi dữ liệu từ RAM xuống OS, OS chuyển thành các block/sector ghi xuống storage. MGN hoạt động ở tầng block — không quan tâm loại ứng dụng hay database." },
+            physical_disk: { title: "Physical Storage & Initial Sync", description: "Initial Sync đọc TOÀN BỘ block hiện có trên đĩa vật lý (không chỉ delta). Ứng dụng vẫn chạy bình thường; Agent throttle tốc độ đọc để không làm nghẽn I/O nguồn." },
+            agent_filter: { title: "AWS Replication Agent — Filter Driver", description: "Agent cài filter driver ở storage I/O stack (block layer). Mọi write I/O vẫn xuống đĩa bình thường; đồng thời Agent bắt block thay đổi để replicate. Đây là cơ chế continuous block-level replication của MGN (kế thừa CloudEndure)." },
+            agent_process: { title: "Queue, Compress & Encrypt", description: "Block thay đổi được đưa vào hàng đợi trên source server, nén để giảm băng thông, mã hóa (AES-256 in transit). Nếu mạng chậm hoặc mất kết nối, Agent giữ queue và gửi bù khi có lại network." },
+            iam_settings: { title: "IAM & Replication Settings Template", description: "Trước khi cài Agent: tạo IAM credentials, cấu hình Replication Settings (staging subnet, loại EBS gp3/st1, instance type replication server, bandwidth throttling). Agent dùng credential này đăng ký source server với MGN Service." },
+            network_control: { title: "TCP 443 — Control Plane", description: "Agent ↔ AWS MGN Service (orchestration, auth, config, monitoring). Replication Server ↔ MGN Service (snapshot, conversion API). Đây KHÔNG phải đường truyền dữ liệu block nặng." },
+            network_data: { title: "TCP 1500 — Data Plane", description: "Agent ↔ Replication Server trong staging subnet — truyền dữ liệu replicate đã nén/mã hóa. Firewall on-prem phải allow OUTBOUND tới IP replication server trên port 1500. Staging subnet phải allow INBOUND 1500 từ source network." },
+            mgn_service: { title: "AWS MGN Service (Control Plane)", description: "Dịch vụ quản lý managed: đăng ký source servers, theo dõi lifecycle (Initial sync → Ready → Test → Cutover → Finalized), điều phối replication servers, conversion servers, và launch EC2 qua EC2 API." },
+            s3: { title: "Amazon S3", description: "MGN dùng S3 cho EBS snapshots, software components (drivers), và AL2023 package repo cho conversion server. Replication server trong staging subnet cần outbound HTTPS tới S3." },
+            rep_server: { title: "Replication Server", description: "EC2 tự động do MGN launch trong staging subnet (một server per source disk hoặc theo cấu hình). Nhận data qua TCP 1500, decrypt/decompress, ghi block vào Staging EBS volume tương ứng." },
+            conversion_server: { title: "Conversion Server", description: "EC2 riêng trong staging area xử lý machine conversion: inject AWS virtualization drivers (ENA network, NVMe storage) vào OS image để boot được trên Nitro hypervisor." },
+            staging_ebs: { title: "Staging EBS Volumes", description: "Bản sao 1:1 từng disk nguồn. Loại volume (gp3, st1, ...) cấu hình trong Replication Settings template — không cố định 'magnetic'. Cập nhật liên tục qua delta sync cho đến khi finalize cutover." },
+            launch_settings: { title: "Launch Settings", description: "Per-source-server config: instance type, subnet đích (có thể khác staging subnet/VPC), security groups, key pair, boot mode. Dùng khi Launch test instance hoặc Launch cutover instance." },
+            conversion: { title: "EBS Snapshot & Volume Conversion", description: "Khi launch cutover/test: MGN snapshot staging volumes trên S3, conversion server inject drivers, tạo EBS volumes bootable gắn vào EC2 đích. Delta sync vẫn chạy trong lúc conversion." },
+            test_ec2: { title: "Test EC2 Instance", description: "Launch test instance từ dữ liệu replicate mới nhất — validate app trên AWS mà KHÔNG ngắt source. Sau test, terminate test instance; replication tiếp tục." },
+            cutover_ec2: { title: "Cutover EC2 (Production)", description: "Launch cutover instance từ snapshot mới nhất. Sau khi validate, Finalize cutover → ngắt replication, disconnect source. Chuyển DNS/traffic sang EC2 mới — downtime phụ thuộc RTO/RPO của bạn." }
+        };
+
+        const STATE_SCHEMA = {
+            source: ["idle", "agent-active", "shutdown"],
+            staging: ["empty", "provisioning", "syncing", "synced", "cleaning"],
+            ioPath: ["direct", "read-disk", "intercept-active", "offline"],
+            control443: ["off", "active"],
+            data1500: ["off", "heavy", "light"],
+            mgnService: ["off", "active"],
+            s3: ["off", "active"],
+            conversion: ["hidden", "running"],
+            conversionServer: ["hidden", "active"],
+            testTarget: ["empty", "booting", "active", "terminated"],
+            cutoverTarget: ["empty", "provisioning", "booting", "active"],
+        };
+
+        const ARCHITECTURE_STEPS = [
+            { title: "1. Cài Agent & Cấu hình", description: "Tạo IAM credentials và Replication Settings template (staging subnet, EBS type). Cài AWS Replication Agent trên source server. Agent đăng ký với MGN Service qua TCP 443.", insight: "💡 Staging subnet nên dedicated. MGN tự launch replication server khi source được thêm vào console.", states: { source: "agent-active", staging: "provisioning", ioPath: "direct", control443: "active", data1500: "off", mgnService: "active", iamVisible: true, s3: "off", conversion: "hidden", conversionServer: "hidden", testTarget: "empty", cutoverTarget: "empty", deltaNotice: false } },
+            { title: "2. Kiến trúc I/O (Block Layer)", description: "Luồng ghi bình thường: App → OS → Disk. Agent chèn filter driver ở block layer — song song với write xuống đĩa vật lý, không thay thế nó.", insight: "Block-level = lift-and-shift nguyên OS, app, config. Không cần agentless hay scan file.", states: { source: "idle", staging: "provisioning", ioPath: "direct", control443: "active", data1500: "off", mgnService: "active", iamVisible: true, s3: "off", conversion: "hidden", conversionServer: "hidden", testTarget: "empty", cutoverTarget: "empty", deltaNotice: false } },
+            { title: "3. Initial Sync", description: "Agent đọc toàn bộ block trên đĩa nguồn, nén/mã hóa, gửi qua TCP 1500 tới Replication Server. Giai đoạn nặng băng thông nhất.", insight: "💡 Ứng dụng vẫn chạy. Agent throttle I/O đọc. Status: 'Initial sync in progress'.", states: { source: "agent-active", staging: "syncing", ioPath: "read-disk", control443: "active", data1500: "heavy", mgnService: "active", iamVisible: false, s3: "off", conversion: "hidden", conversionServer: "hidden", testTarget: "empty", cutoverTarget: "empty", deltaNotice: false } },
+            { title: "4. Continuous Delta Sync", description: "Initial sync hoàn tất → status Ready. Agent intercept block writes mới, gửi delta qua TCP 1500. Staging EBS luôn đồng bộ gần real-time.", insight: "💡 Băng thông giảm mạnh. Mất mạng? Agent queue changes trên source và sync lại sau.", states: { source: "agent-active", staging: "synced", ioPath: "intercept-active", control443: "active", data1500: "light", mgnService: "active", iamVisible: false, s3: "off", conversion: "hidden", conversionServer: "hidden", testTarget: "empty", cutoverTarget: "empty", deltaNotice: false } },
+            { title: "5. Launch Test Instance", description: "Launch test EC2 từ launch settings — validate ứng dụng trên AWS. Source vẫn chạy, delta sync vẫn tiếp tục.", insight: "💡 Test instance có thể terminate sau khi validate. Không ảnh hưởng replication.", states: { source: "agent-active", staging: "synced", ioPath: "intercept-active", control443: "active", data1500: "light", mgnService: "active", iamVisible: false, s3: "active", conversion: "hidden", conversionServer: "hidden", testTarget: "booting", cutoverTarget: "empty", deltaNotice: true } },
+            { title: "6. Launch Cutover Instance", description: "Bấm Launch cutover instances. MGN trigger snapshot staging volumes. Delta sync VẪN chạy — source chưa tắt.", insight: "💡 Test EC2 vẫn hiển thị (đã validate). Cutover EC2 bắt đầu provisioning.", states: { source: "agent-active", staging: "synced", ioPath: "intercept-active", control443: "active", data1500: "light", mgnService: "active", iamVisible: false, s3: "active", conversion: "hidden", conversionServer: "hidden", testTarget: "active", cutoverTarget: "provisioning", deltaNotice: true } },
+            { title: "7. Snapshot + Conversion", description: "Conversion Server inject ENA/NVMe drivers. EBS snapshot trên S3 → volume bootable. Cutover EC2 đang build.", insight: "💡 Conversion server tự launch trong staging area. Delta vẫn sync trong lúc này.", states: { source: "agent-active", staging: "synced", ioPath: "intercept-active", control443: "active", data1500: "light", mgnService: "active", iamVisible: false, s3: "active", conversion: "running", conversionServer: "active", testTarget: "terminated", cutoverTarget: "booting", deltaNotice: true } },
+            { title: "8. Finalize Cutover", description: "Xác nhận cutover EC2 hoạt động đúng. Bấm Finalize cutover trong MGN console — chuẩn bị ngắt replication.", insight: "💡 Sau finalize: không thể quay lại replicate tiếp từ source này. Plan DNS/traffic switch.", states: { source: "agent-active", staging: "synced", ioPath: "intercept-active", control443: "active", data1500: "light", mgnService: "active", iamVisible: false, s3: "off", conversion: "running", conversionServer: "active", testTarget: "terminated", cutoverTarget: "active", deltaNotice: false } },
+            { title: "9. Disconnect & Cleanup", description: "Tắt source on-prem. Replication dừng. Replication/Conversion infrastructure tự cleanup. Cutover EC2 là production mới.", insight: "💡 Mark source as archived trong MGN. Xóa replication servers để tiết kiệm chi phí.", states: { source: "shutdown", staging: "cleaning", ioPath: "offline", control443: "off", data1500: "off", mgnService: "active", iamVisible: false, s3: "off", conversion: "hidden", conversionServer: "hidden", testTarget: "terminated", cutoverTarget: "active", deltaNotice: false } }
+        ];
+
+        let currentStepIndex = 0;
+        let activeComponent = null;
+        let packetAnimFrame = null;
+        let flowState = { data: false, control: false, heavy: false };
+        let packetLoops = [];
+
+        const DOM = {};
+
+        function cacheDOM() {
+            const $ = (id) => document.getElementById(id);
+            DOM.btnPrev = $("btn-prev");
+            DOM.btnNext = $("btn-next");
+            DOM.stepTitle = $("step-title");
+            DOM.stepDescription = $("step-description");
+            DOM.stepInsight = $("step-insight");
+            DOM.stepCounter = $("step-counter");
+            DOM.progressBar = $("progress-bar");
+            DOM.inspectorEmpty = $("inspector-empty");
+            DOM.inspectorContent = $("inspector-content");
+            DOM.inspectorTitle = $("inspector-title");
+            DOM.inspectorDesc = $("inspector-desc");
+            DOM.btnCloseInspector = $("btn-close-inspector");
+            DOM.sourceServerBox = $("source-server-box");
+            DOM.sourceOfflineBadge = $("source-offline-badge");
+            DOM.ramDataPulse = $("ram-data-pulse");
+            DOM.mainIoFlow = $("main-io-flow");
+            DOM.interceptPath = $("intercept-path");
+            DOM.agentActivePing = $("agent-active-ping");
+            DOM.diskReadBadge = $("disk-read-badge");
+            DOM.diskReadFlow = $("disk-read-flow");
+            DOM.diskWriteFlow = $("disk-write-flow");
+            DOM.iamBadge = $("iam-badge");
+            DOM.networkLabelHeavy = $("network-label-heavy");
+            DOM.networkLabelLight = $("network-label-light");
+            DOM.control443Label = $("control-443-label");
+            DOM.diagramTopRow = $("diagram-top-row");
+            DOM.flowSvg = $("mgn-flow-svg");
+            DOM.pathDataOuter = $("path-data-outer");
+            DOM.pathDataInner = $("path-data-inner");
+            DOM.pathDataActive = $("path-data-active");
+            DOM.pathControlBase = $("path-control-base");
+            DOM.pathControlActive = $("path-control-active");
+            DOM.labelDataPipe = $("label-data-pipe");
+            DOM.labelControlPipe = $("label-control-pipe");
+            DOM.animPacketData = $("anim-packet-data");
+            DOM.animPacketControl = $("anim-packet-control");
+            DOM.flowAnchorAgent = $("flow-anchor-agent");
+            DOM.flowAnchorRep = $("flow-anchor-rep");
+            DOM.flowAnchorMgn = $("flow-anchor-mgn");
+            DOM.controlPlaneStrip = $("control-plane-strip");
+            DOM.mgnPing = $("mgn-ping");
+            DOM.stagingContentArea = $("staging-content-area");
+            DOM.repServerPing = $("rep-server-ping");
+            DOM.stagingIoDown = $("staging-io-down");
+            DOM.stagingVolIcon = $("staging-vol-icon");
+            DOM.conversionServerBox = $("conversion-server-box");
+            DOM.conversionSnapshotBox = $("conversion-snapshot-box");
+            DOM.deltaNotice = $("delta-notice");
+            DOM.launchArrowTest = $("launch-arrow-test");
+            DOM.launchArrowCutover = $("launch-arrow-cutover");
+            DOM.testZone = $("test-zone");
+            DOM.testZoneStatus = $("test-zone-status");
+            DOM.testEmpty = $("test-empty");
+            DOM.testEc2Box = $("test-ec2-box");
+            DOM.testBadge = $("test-badge");
+            DOM.cutoverZone = $("cutover-zone");
+            DOM.cutoverZoneStatus = $("cutover-zone-status");
+            DOM.cutoverEmpty = $("cutover-empty");
+            DOM.cutoverEc2Box = $("cutover-ec2-box");
+            DOM.cutoverBadgeLive = $("cutover-badge-live");
+            DOM.cutoverBadgeBuilding = $("cutover-badge-building");
+        }
+
+        function init() {
+            cacheDOM();
+            createProgressBars();
+            bindEvents();
+            initZoomPan();
+            window.addEventListener("resize", () => { updateFlowGeometry(); });
+            renderStep(0);
+        }
+
+        function createProgressBars() {
+            DOM.progressBar.innerHTML = "";
+            ARCHITECTURE_STEPS.forEach((_, idx) => {
+                const bar = document.createElement("div");
+                bar.className = "h-1.5 flex-1 rounded-full transition-colors duration-500 bg-slate-800";
+                bar.id = `prog-bar-${idx}`;
+                DOM.progressBar.appendChild(bar);
+            });
+        }
+
+        function bindEvents() {
+            DOM.btnNext.addEventListener("click", () => {
+                if (currentStepIndex < ARCHITECTURE_STEPS.length - 1) {
+                    currentStepIndex++;
+                    renderStep(currentStepIndex);
+                }
+            });
+            DOM.btnPrev.addEventListener("click", () => {
+                if (currentStepIndex > 0) {
+                    currentStepIndex--;
+                    renderStep(currentStepIndex);
+                }
+            });
+            DOM.btnCloseInspector.addEventListener("click", () => selectComponent(null));
+            document.addEventListener("click", (e) => {
+                const zoomBtn = e.target.closest("[data-action]");
+                if (zoomBtn) {
+                    const action = zoomBtn.dataset.action;
+                    if (action === "zoom") zoomCanvas(Number(zoomBtn.dataset.delta));
+                    if (action === "reset-zoom") resetZoom();
+                    return;
+                }
+                const el = e.target.closest(".interactive-element[data-component]");
+                if (!el) return;
+                e.stopPropagation();
+                selectComponent(el.getAttribute("data-component"));
+            });
+        }
+
+        // --- Zoom & Pan ---
+        let scale = 0.58;
+        let panX = 24;
+        let panY = 16;
+        let isPanning = false;
+        let startX = 0;
+        let startY = 0;
+
+        function applyTransform() {
+            const group = document.getElementById("zoom-pan-group");
+            if (group) group.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+        }
+
+        function zoomCanvas(delta) {
+            scale = Math.max(0.35, Math.min(scale + delta, 2.2));
+            applyTransform();
+        }
+
+        function resetZoom() {
+            scale = 0.58;
+            panX = 24;
+            panY = 16;
+            applyTransform();
+        }
+
+        function initZoomPan() {
+            const container = document.getElementById("svg-container");
+            if (!container) return;
+            container.addEventListener("wheel", (e) => {
+                e.preventDefault();
+                zoomCanvas(e.deltaY > 0 ? -0.06 : 0.06);
+            }, { passive: false });
+
+            container.addEventListener("mousedown", (e) => {
+                if (e.target.closest(".interactive-element")) return;
+                isPanning = true;
+                startX = e.clientX - panX;
+                startY = e.clientY - panY;
+            });
+
+            window.addEventListener("mousemove", (e) => {
+                if (!isPanning) return;
+                panX = e.clientX - startX;
+                panY = e.clientY - startY;
+                applyTransform();
+            });
+
+            window.addEventListener("mouseup", () => { isPanning = false; });
+            container.addEventListener("mouseleave", () => { isPanning = false; });
+            applyTransform();
+        }
+
+        const HIGHLIGHT_RESET = ["ring-4", "ring-2", "scale-105", "scale-110", "z-10", "z-20", "border-orange-500", "border-blue-500", "border-indigo-500", "border-green-500", "border-amber-500", "shadow-md", "bg-slate-100", "bg-purple-100", "bg-blue-100", "bg-indigo-50", "bg-orange-50", "bg-amber-50"];
+
+        function selectComponent(compId) {
+            activeComponent = compId;
+            if (compId && COMPONENT_DETAILS[compId]) {
+                DOM.inspectorEmpty.classList.add("hidden");
+                DOM.inspectorContent.classList.remove("hidden");
+                DOM.inspectorTitle.textContent = COMPONENT_DETAILS[compId].title;
+                DOM.inspectorDesc.textContent = COMPONENT_DETAILS[compId].description;
+            } else {
+                DOM.inspectorEmpty.classList.remove("hidden");
+                DOM.inspectorContent.classList.add("hidden");
+            }
+            document.querySelectorAll(".interactive-element[data-component]").forEach(el => {
+                el.classList.remove(...HIGHLIGHT_RESET);
+                if (el.getAttribute("data-component") === activeComponent) {
+                    el.classList.add("ring-2", "ring-orange-300", "scale-105", "z-10");
+                }
+            });
+        }
+
+        function setVisible(el, show) {
+            if (!el) return;
+            el.classList.toggle("hidden", !show);
+            el.style.display = show ? "" : "none";
+        }
+
+        function anchorPoint(el, side, root) {
+            const r = el.getBoundingClientRect();
+            const rr = root.getBoundingClientRect();
+            const x = side === "right" ? r.right - rr.left : r.left - rr.left;
+            const y = r.top + r.height / 2 - rr.top;
+            return { x, y };
+        }
+
+        function setPathD(el, d) {
+            if (el) el.setAttribute("d", d);
+        }
+
+        function updateFlowGeometry() {
+            if (!DOM.diagramTopRow || !DOM.flowAnchorAgent || !DOM.flowAnchorRep) return;
+            const root = DOM.diagramTopRow;
+            const agent = anchorPoint(DOM.flowAnchorAgent, "right", root);
+            const rep = anchorPoint(DOM.flowAnchorRep, "left", root);
+            const y = agent.y;
+            const pad = 4;
+            const dataPath = `M ${agent.x + pad},${y} L ${rep.x - pad},${y}`;
+            setPathD(DOM.pathDataOuter, dataPath);
+            setPathD(DOM.pathDataInner, dataPath);
+            setPathD(DOM.pathDataActive, dataPath);
+            if (DOM.labelDataPipe) {
+                DOM.labelDataPipe.setAttribute("x", (agent.x + rep.x) / 2);
+                DOM.labelDataPipe.setAttribute("y", y - 10);
+            }
+            if (DOM.flowAnchorMgn) {
+                const mgn = anchorPoint(DOM.flowAnchorMgn, "left", root);
+                const midX = (agent.x + mgn.x) / 2;
+                const laneY = Math.max(88, Math.min(agent.y - 18, mgn.y));
+                const controlPath = `M ${agent.x + pad},${agent.y - 8} H ${midX} V ${laneY} H ${mgn.x - pad}`;
+                setPathD(DOM.pathControlBase, controlPath);
+                setPathD(DOM.pathControlActive, controlPath);
+                if (DOM.labelControlPipe) {
+                    DOM.labelControlPipe.setAttribute("x", midX);
+                    DOM.labelControlPipe.setAttribute("y", laneY - 8);
+                }
+            }
+            applyFlowVisuals();
+        }
+
+        function stopPacketAnim() {
+            if (packetAnimFrame) cancelAnimationFrame(packetAnimFrame);
+            packetAnimFrame = null;
+            packetLoops = [];
+        }
+
+        function animatePackets(loops) {
+            if (!loops.length) return;
+            stopPacketAnim();
+            packetLoops = loops;
+            loops.forEach(l => { if (l.circle) l.circle.style.display = ""; });
+            const starts = loops.map(() => null);
+            function frame(ts) {
+                packetLoops.forEach((l, i) => {
+                    if (!l.path || !l.circle) return;
+                    if (!starts[i]) starts[i] = ts;
+                    const len = l.path.getTotalLength();
+                    const prog = ((ts - starts[i]) % l.duration) / l.duration;
+                    const pt = l.path.getPointAtLength(prog * len);
+                    l.circle.setAttribute("cx", pt.x);
+                    l.circle.setAttribute("cy", pt.y);
+                });
+                packetAnimFrame = requestAnimationFrame(frame);
+            }
+            packetAnimFrame = requestAnimationFrame(frame);
+        }
+
+        function applyFlowVisuals() {
+            const dataOn = flowState.data;
+            const ctrlOn = flowState.control;
+            const heavy = flowState.heavy;
+            if (DOM.pathDataActive) DOM.pathDataActive.classList.toggle("hidden", !dataOn);
+            if (DOM.pathDataOuter) DOM.pathDataOuter.style.opacity = dataOn ? "0.7" : "0.25";
+            if (DOM.pathDataInner) {
+                DOM.pathDataInner.style.opacity = dataOn ? "0.9" : "0.35";
+                DOM.pathDataInner.setAttribute("stroke", heavy ? "#fed7aa" : "#e9d5ff");
+            }
+            if (DOM.pathDataActive) {
+                DOM.pathDataActive.setAttribute("stroke", heavy ? "#ea580c" : "#9333ea");
+            }
+            if (DOM.labelDataPipe) DOM.labelDataPipe.setAttribute("opacity", dataOn ? "1" : "0");
+            if (DOM.pathControlActive) DOM.pathControlActive.classList.toggle("hidden", !ctrlOn);
+            if (DOM.pathControlBase) DOM.pathControlBase.style.opacity = ctrlOn ? "0.5" : "0.2";
+            if (DOM.labelControlPipe) DOM.labelControlPipe.setAttribute("opacity", ctrlOn ? "1" : "0");
+            if (DOM.control443Label) {
+                DOM.control443Label.classList.toggle("opacity-50", !ctrlOn);
+                DOM.control443Label.classList.toggle("border-orange-400", ctrlOn);
+                DOM.control443Label.classList.toggle("text-orange-700", ctrlOn);
+                DOM.control443Label.classList.toggle("ring-2", ctrlOn);
+                DOM.control443Label.classList.toggle("ring-orange-200", ctrlOn);
+            }
+            stopPacketAnim();
+            const loops = [];
+            if (dataOn && DOM.pathDataActive && DOM.animPacketData) {
+                loops.push({ path: DOM.pathDataActive, circle: DOM.animPacketData, duration: heavy ? 1200 : 2200 });
+            } else if (DOM.animPacketData) {
+                DOM.animPacketData.style.display = "none";
+            }
+            if (ctrlOn && DOM.pathControlActive && DOM.animPacketControl) {
+                loops.push({ path: DOM.pathControlActive, circle: DOM.animPacketControl, duration: 2800 });
+            } else if (DOM.animPacketControl) {
+                DOM.animPacketControl.style.display = "none";
+            }
+            animatePackets(loops);
+        }
+
+        function renderStep(index) {
+            const step = ARCHITECTURE_STEPS[index];
+            const s = step.states;
+
+            DOM.stepCounter.textContent = `Giai đoạn ${index + 1} / ${ARCHITECTURE_STEPS.length}`;
+            DOM.stepTitle.textContent = step.title;
+            DOM.stepDescription.textContent = step.description;
+            DOM.stepInsight.textContent = step.insight;
+
+            ARCHITECTURE_STEPS.forEach((_, idx) => {
+                const bar = document.getElementById(`prog-bar-${idx}`);
+                bar.classList.toggle("bg-orange-500", idx <= index);
+                bar.classList.toggle("bg-slate-800", idx > index);
+            });
+
+            DOM.btnPrev.disabled = index === 0;
+            DOM.btnNext.textContent = index === ARCHITECTURE_STEPS.length - 1 ? "Hoàn tất" : "Tiếp theo";
+            DOM.btnNext.disabled = index === ARCHITECTURE_STEPS.length - 1;
+
+            // Source
+            const shutdown = s.source === "shutdown";
+            DOM.sourceServerBox.classList.toggle("border-slate-300", shutdown);
+            DOM.sourceServerBox.classList.toggle("grayscale", shutdown);
+            DOM.sourceServerBox.classList.toggle("opacity-60", shutdown);
+            DOM.sourceServerBox.classList.toggle("border-emerald-400", !shutdown);
+            setVisible(DOM.sourceOfflineBadge, shutdown);
+
+            // IO paths
+            const intercept = s.ioPath === "intercept-active";
+            const readDisk = s.ioPath === "read-disk";
+            const dataActive = s.data1500 === "heavy" || s.data1500 === "light";
+
+            DOM.ramDataPulse.classList.toggle("opacity-0", !intercept && !readDisk);
+            DOM.interceptPath.classList.toggle("opacity-0", !intercept);
+            DOM.interceptPath.classList.toggle("opacity-100", intercept);
+            setVisible(DOM.agentActivePing, s.source === "agent-active");
+            DOM.mainIoFlow.classList.toggle("hidden", s.ioPath === "offline");
+            if (DOM.diskWriteFlow) DOM.diskWriteFlow.classList.toggle("hidden", s.ioPath === "offline");
+            setVisible(DOM.diskReadBadge, readDisk);
+            setVisible(DOM.diskReadFlow, readDisk);
+
+            // Flow pipes (SVG — DX style)
+            flowState.data = dataActive && s.ioPath !== "offline";
+            flowState.control = s.control443 === "active";
+            flowState.heavy = s.data1500 === "heavy";
+            setVisible(DOM.networkLabelHeavy, s.data1500 === "heavy");
+            setVisible(DOM.networkLabelLight, s.data1500 === "light");
+            requestAnimationFrame(() => { updateFlowGeometry(); });
+
+            // IAM
+            setVisible(DOM.iamBadge, s.iamVisible);
+
+            // Control plane strip
+            DOM.controlPlaneStrip.classList.toggle("opacity-40", s.mgnService !== "active");
+            DOM.controlPlaneStrip.classList.toggle("opacity-100", s.mgnService === "active");
+            setVisible(DOM.mgnPing, s.mgnService === "active");
+            const s3El = document.querySelector('[data-component="s3"]');
+            if (s3El) {
+                s3El.classList.toggle("opacity-50", s.s3 !== "active");
+                s3El.classList.toggle("opacity-100", s.s3 === "active");
+                s3El.classList.toggle("ring-2", s.s3 === "active");
+                s3El.classList.toggle("ring-green-300", s.s3 === "active");
+            }
+
+            // Staging
+            const stagingEmpty = s.staging === "empty";
+            setVisible(DOM.stagingContentArea, !stagingEmpty);
+            if (!stagingEmpty) {
+                DOM.stagingContentArea.classList.toggle("opacity-30", s.staging === "cleaning");
+                const syncing = s.staging === "syncing" || s.staging === "synced";
+                setVisible(DOM.repServerPing, syncing);
+                setVisible(DOM.stagingIoDown, syncing);
+                DOM.stagingVolIcon.classList.toggle("opacity-100", syncing);
+                DOM.stagingVolIcon.classList.toggle("animate-pulse", syncing);
+                DOM.stagingVolIcon.classList.toggle("opacity-40", !syncing);
+            }
+
+            // Conversion
+            setVisible(DOM.conversionServerBox, s.conversionServer === "active");
+            setVisible(DOM.conversionSnapshotBox, s.conversion === "running");
+            setVisible(DOM.deltaNotice, s.deltaNotice);
+
+            // Test EC2
+            const hasTest = ["booting", "active", "terminated"].includes(s.testTarget);
+            setVisible(DOM.testEmpty, !hasTest);
+            setVisible(DOM.testEc2Box, hasTest);
+            setVisible(DOM.launchArrowTest, s.testTarget === "booting");
+            setVisible(DOM.testZoneStatus, s.testTarget === "booting");
+            if (DOM.testZone) {
+                DOM.testZone.classList.toggle("ring-4", s.testTarget === "booting");
+                DOM.testZone.classList.toggle("ring-amber-300", s.testTarget === "booting");
+                DOM.testZone.classList.toggle("bg-amber-100", s.testTarget === "booting" || s.testTarget === "active");
+            }
+            if (hasTest) {
+                DOM.testEc2Box.classList.toggle("opacity-40", s.testTarget === "terminated");
+                DOM.testEc2Box.classList.toggle("animate-pulse", s.testTarget === "booting");
+                DOM.testEc2Box.classList.toggle("ring-4", s.testTarget === "active");
+                DOM.testEc2Box.classList.toggle("ring-amber-400", s.testTarget === "active");
+                const badges = { booting: "LAUNCHING...", active: "✓ TEST OK", terminated: "TERMINATED" };
+                DOM.testBadge.textContent = badges[s.testTarget] || "TEST";
+            }
+
+            // Cutover EC2
+            const hasCutover = ["provisioning", "booting", "active"].includes(s.cutoverTarget);
+            setVisible(DOM.cutoverEmpty, !hasCutover);
+            setVisible(DOM.cutoverEc2Box, hasCutover);
+            setVisible(DOM.launchArrowCutover, s.cutoverTarget === "provisioning" || s.cutoverTarget === "booting");
+            setVisible(DOM.cutoverZoneStatus, s.cutoverTarget === "provisioning" || s.cutoverTarget === "booting");
+            setVisible(DOM.cutoverBadgeLive, s.cutoverTarget === "active");
+            setVisible(DOM.cutoverBadgeBuilding, s.cutoverTarget === "provisioning" || s.cutoverTarget === "booting");
+            if (DOM.cutoverZone) {
+                DOM.cutoverZone.classList.toggle("ring-4", hasCutover && s.cutoverTarget !== "active");
+                DOM.cutoverZone.classList.toggle("ring-green-300", s.cutoverTarget === "provisioning" || s.cutoverTarget === "booting");
+                DOM.cutoverZone.classList.toggle("ring-green-500", s.cutoverTarget === "active");
+                DOM.cutoverZone.classList.toggle("bg-green-100", hasCutover);
+            }
+            if (hasCutover) {
+                DOM.cutoverEc2Box.classList.toggle("border-yellow-400", s.cutoverTarget === "provisioning");
+                DOM.cutoverEc2Box.classList.toggle("animate-pulse", s.cutoverTarget === "booting" || s.cutoverTarget === "provisioning");
+                DOM.cutoverEc2Box.classList.toggle("border-green-600", s.cutoverTarget === "active");
+                DOM.cutoverEc2Box.classList.toggle("scale-105", s.cutoverTarget === "active");
+                if (DOM.cutoverZoneStatus) {
+                    DOM.cutoverZoneStatus.textContent = s.cutoverTarget === "provisioning" ? "PROVISIONING" : "BUILDING";
+                }
+            }
+
+            if (activeComponent) selectComponent(activeComponent);
+        }
+
+        document.addEventListener("DOMContentLoaded", init);
+    </script>
+</body>
+</html>

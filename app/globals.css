@@ -1,8 +1,34 @@
 @import "tailwindcss";
 
 :root {
-  --background: #020617;
-  --foreground: #f1f5f9;
+  --background: #fdfaf3;
+  --foreground: #333333;
+  --bg-paper: #fdfaf3;
+  --grid-line: #efede7;
+  --grid-line-vertical: #f0ebe1;
+  --text-main: #333333;
+  --ink-soft: #6d6257;
+  --ink-faint: #b8aa9a;
+  --text-blue: #3b5998;
+  --text-red: #d32f2f;
+  --text-green: #388e3c;
+  --box-purple-bg: #f4f0ff;
+  --box-purple-border: #a89fcf;
+  --box-blue-bg: #f0f7fd;
+  --box-blue-border: #9fbce4;
+  --box-yellow-bg: #fffcf0;
+  --box-yellow-border: #e6d38e;
+  --box-green-bg: #f0fdf4;
+  --box-green-border: #a3e6b5;
+  --box-orange-bg: #fff5e6;
+  --box-orange-border: #ffb067;
+  --hl-red: #fdeaea;
+  --hl-red-border: #e68a8a;
+  --wash-yellow: rgba(255, 193, 83, 0.32);
+  --wash-blue: rgba(157, 204, 244, 0.3);
+  --wash-green: rgba(154, 222, 170, 0.28);
+  --wash-orange: rgba(255, 176, 103, 0.3);
+  --wash-purple: rgba(181, 169, 225, 0.26);
 
   --cloud-aws: #f97316;
   --cloud-azure: #38bdf8;
@@ -13,7 +39,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-plex-sans), "IBM Plex Sans", system-ui, sans-serif;
+  --font-sans: var(--font-pangolin), var(--font-klee-one), cursive, sans-serif;
   --font-mono: var(--font-plex-mono), "IBM Plex Mono", ui-monospace, monospace;
 }
 
@@ -24,17 +50,17 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-plex-sans), "IBM Plex Sans", system-ui, sans-serif;
+  font-family: var(--font-pangolin), var(--font-klee-one), cursive, sans-serif;
 }
 
 .bg-grid {
-  background-size: 40px 40px;
+  background-size: 20px 20px;
   background-image: linear-gradient(
       to right,
-      rgba(30, 41, 59, 0.16) 1px,
+      var(--grid-line-vertical) 1px,
       transparent 1px
     ),
-    linear-gradient(to bottom, rgba(30, 41, 59, 0.16) 1px, transparent 1px);
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
 }
 
 /**
@@ -52,18 +78,98 @@ body {
   inset: 0;
   z-index: -1;
   background:
-    radial-gradient(48rem 28rem at 12% 0%, rgba(56, 189, 248, 0.16), transparent 60%),
-    radial-gradient(42rem 26rem at 100% 8%, rgba(168, 85, 247, 0.13), transparent 55%),
-    radial-gradient(38rem 30rem at 45% 100%, rgba(16, 185, 129, 0.07), transparent 60%);
+    radial-gradient(42rem 24rem at 12% 0%, rgba(255, 176, 103, 0.18), transparent 60%),
+    radial-gradient(38rem 24rem at 100% 8%, rgba(168, 159, 207, 0.16), transparent 55%),
+    radial-gradient(34rem 26rem at 45% 100%, rgba(163, 230, 181, 0.14), transparent 60%);
   pointer-events: none;
 }
 
-/** Thẻ kính mờ dùng chung cho card/section — thay cho border-slate-800 cứng. */
 .glass-card {
-  border-radius: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(12px);
+  position: relative;
+  overflow: hidden;
+  border: 1.5px solid var(--ink-soft);
+  border-radius: 10px 15px 8px 12px/12px 8px 15px 10px;
+  background: rgba(255, 255, 255, 0.34);
+  box-shadow: 2px 2px 0 rgba(109, 98, 87, 0.12);
+}
+
+.glass-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.marker-wash {
+  position: relative;
+  isolation: isolate;
+}
+
+.marker-wash::before {
+  content: "";
+  position: absolute;
+  inset: 0.35rem 0.45rem;
+  z-index: 0;
+  background: var(--marker-wash-color, var(--wash-yellow));
+  border-radius: 56% 44% 52% 48% / 48% 55% 45% 52%;
+  filter: blur(0.3px);
+  opacity: 0.9;
+  transform: rotate(var(--marker-wash-rotate, -1.2deg));
+  clip-path: polygon(3% 14%, 98% 4%, 94% 31%, 100% 54%, 91% 83%, 7% 95%, 12% 71%, 0 48%);
+}
+
+.marker-wash > * {
+  position: relative;
+  z-index: 1;
+}
+
+.marker-wash-sm::before {
+  inset: 0.18rem 0.28rem;
+  opacity: 0.82;
+}
+
+.marker-wash-yellow { --marker-wash-color: var(--wash-yellow); --marker-wash-rotate: -1.5deg; }
+.marker-wash-blue { --marker-wash-color: var(--wash-blue); --marker-wash-rotate: 1.2deg; }
+.marker-wash-green { --marker-wash-color: var(--wash-green); --marker-wash-rotate: -0.8deg; }
+.marker-wash-orange { --marker-wash-color: var(--wash-orange); --marker-wash-rotate: 1.6deg; }
+.marker-wash-purple { --marker-wash-color: var(--wash-purple); --marker-wash-rotate: -1deg; }
+
+.soft-ink-border {
+  border-color: var(--ink-soft);
+}
+
+.hd-border {
+  border: 1.5px solid var(--ink-soft);
+  border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
+}
+
+.hd-border-alt {
+  border: 1.5px solid var(--ink-soft);
+  border-radius: 15px 225px 15px 255px/255px 15px 225px 15px;
+}
+
+.hd-border-soft {
+  border: 1.5px solid var(--ink-soft);
+  border-radius: 10px 15px 8px 12px/12px 8px 15px 10px;
+}
+
+.hd-shadow {
+  box-shadow: 2px 2px 0 rgba(109, 98, 87, 0.12);
+}
+
+.section-header {
+  display: inline-block;
+  border: 2px solid var(--box-purple-border);
+  border-radius: 8px 12px 6px 14px / 12px 8px 14px 6px;
+  background: var(--box-purple-bg);
+  color: #4a4a8a;
+  padding: 0.25rem 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.sketch-note {
+  border: 2px solid var(--box-yellow-border);
+  border-radius: 15px 225px 15px 255px/255px 15px 225px 15px;
+  background: var(--box-yellow-bg);
 }
 
 /** Animation cho đường link trong HeroTopology. */

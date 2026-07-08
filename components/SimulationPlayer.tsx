@@ -40,19 +40,19 @@ export function SimulationPlayer({ slug, htmlPath, title }: SimulationPlayerProp
   return (
     <div
       ref={wrapperRef}
-      className={`relative flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 shadow-2xl shadow-black/40 ${
+      className={`relative flex min-h-0 flex-1 flex-col overflow-hidden bg-white hd-shadow ${
         isFullscreen
           ? "rounded-none border-0"
-          : "rounded-2xl border border-white/10 bg-slate-950/80 backdrop-blur-sm"
+          : "hd-border-soft"
       }`}
     >
       {/* Chrome bar */}
-      <div className="flex shrink-0 items-center justify-between border-b border-white/5 bg-white/[0.03] px-3 py-2">
+      <div className="flex shrink-0 items-center justify-between border-b-2 border-dashed border-gray-300 bg-[var(--box-yellow-bg)] px-3 py-2">
         <div className="flex items-center gap-2">
           <span className="h-2.5 w-2.5 rounded-full bg-red-400/70" />
           <span className="h-2.5 w-2.5 rounded-full bg-amber-400/70" />
           <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/70" />
-          <span className="ml-2 hidden font-mono text-[10px] tracking-wide text-slate-500 sm:inline">
+          <span className="ml-2 hidden font-mono text-[10px] tracking-wide text-gray-600 sm:inline">
             simulation · {slug}
           </span>
         </div>
@@ -60,7 +60,7 @@ export function SimulationPlayer({ slug, htmlPath, title }: SimulationPlayerProp
           type="button"
           onClick={toggleFullscreen}
           aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-          className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-300 transition hover:border-sky-500/50 hover:text-sky-300"
+          className="hd-border flex items-center gap-1.5 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-main)] transition hover:bg-[var(--box-blue-bg)]"
         >
           {isFullscreen ? (
             <>
@@ -91,7 +91,7 @@ export function SimulationPlayer({ slug, htmlPath, title }: SimulationPlayerProp
       <iframe
         src={htmlPath}
         title={title}
-        className="h-full w-full min-h-0 flex-1 border-0 bg-slate-950"
+        className="h-full w-full min-h-0 flex-1 border-0 bg-[var(--bg-paper)]"
         sandbox="allow-scripts allow-same-origin allow-popups allow-modals allow-forms"
         allow="fullscreen"
       />

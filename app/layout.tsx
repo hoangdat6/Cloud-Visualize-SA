@@ -1,12 +1,18 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { IBM_Plex_Mono, Klee_One, Pangolin } from "next/font/google";
 import "./globals.css";
 import { SITE } from "@/lib/site";
 
-const plexSans = IBM_Plex_Sans({
-  variable: "--font-plex-sans",
+const pangolin = Pangolin({
+  variable: "--font-pangolin",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: "400",
+});
+
+const kleeOne = Klee_One({
+  variable: "--font-klee-one",
+  subsets: ["latin"],
+  weight: ["400", "600"],
 });
 
 const plexMono = IBM_Plex_Mono({
@@ -41,10 +47,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${plexSans.variable} ${plexMono.variable} h-full bg-slate-950 text-slate-100 antialiased`}
+      className={`${pangolin.variable} ${kleeOne.variable} ${plexMono.variable} h-full bg-[var(--bg-paper)] text-[var(--text-main)] antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-slate-950 font-sans" suppressHydrationWarning>
+      <body className="min-h-full flex flex-col bg-[var(--bg-paper)] font-sans" suppressHydrationWarning>
         {children}
       </body>
     </html>

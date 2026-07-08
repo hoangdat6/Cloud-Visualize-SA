@@ -19,12 +19,12 @@ export default function HomePage() {
   }));
 
   return (
-    <div className="relative flex min-h-full flex-1 flex-col bg-slate-950 bg-grid bg-aurora">
-      <header className="sticky top-0 z-20 bg-slate-950/60 px-6 py-4 backdrop-blur-xl">
+    <div className="relative flex min-h-full flex-1 flex-col bg-[var(--bg-paper)] bg-grid bg-aurora text-[var(--text-main)]">
+      <header className="sticky top-0 z-20 border-b-2 border-dashed border-gray-400 bg-[var(--bg-paper)]/90 px-6 py-4 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-purple-500 shadow-lg shadow-sky-500/20">
-              <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="hd-border flex h-12 w-12 shrink-0 rotate-[-3deg] items-center justify-center bg-white text-[var(--text-blue)] hd-shadow">
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -32,11 +32,11 @@ export default function HomePage() {
                 />
               </svg>
             </div>
-            <span className="text-sm font-bold uppercase tracking-wider text-white">{SITE.name}</span>
+            <span className="text-sm font-bold uppercase tracking-wider text-[var(--text-main)]">{SITE.name}</span>
           </div>
           <a
             href="#gallery"
-            className="hidden text-xs font-medium text-slate-400 transition hover:text-white sm:inline"
+            className="hidden text-xs font-bold text-[var(--text-blue)] underline decoration-wavy transition hover:text-[var(--text-red)] sm:inline"
           >
             Simulation library
           </a>
@@ -46,20 +46,20 @@ export default function HomePage() {
       <section className="px-6 pb-12 pt-10 sm:pt-14 lg:pb-20 lg:pt-16">
         <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-12">
           <div className="flex flex-col items-start gap-6">
-            <span className="inline-flex items-center gap-2 rounded-full border border-sky-400/20 bg-sky-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-sky-300">
-              <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
+            <span className="section-header">
+              <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-[var(--text-blue)]" />
               Interactive architecture lab
             </span>
 
-            <h1 className="text-4xl font-bold leading-[1.15] text-white sm:text-5xl">
+            <h1 className="text-4xl font-bold leading-[1.15] text-[var(--text-main)] sm:text-5xl">
               Explore and learn{" "}
-              <span className="bg-gradient-to-r from-sky-400 via-cyan-300 to-purple-400 bg-clip-text text-transparent">
+              <span className="rounded-xl bg-[var(--box-yellow-bg)] px-2 text-[var(--text-blue)] underline decoration-wavy decoration-[var(--text-red)]">
                 cloud architecture
               </span>{" "}
               through interactive simulations
             </h1>
 
-            <p className="max-w-lg text-sm leading-relaxed text-slate-400 sm:text-base">
+            <p className="max-w-lg text-sm leading-relaxed text-gray-700 sm:text-base">
               A library of visual simulations that help Solution Architects understand components,
               data flows, and configuration inside AWS, Azure, and GCP architectures.
             </p>
@@ -67,14 +67,14 @@ export default function HomePage() {
             <div className="flex flex-wrap items-center gap-3">
               <a
                 href="#gallery"
-                className="flex w-fit items-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-blue-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-sky-500/25 transition hover:shadow-xl hover:shadow-sky-500/30"
+                className="hd-border flex w-fit items-center gap-2 bg-[var(--box-green-bg)] px-6 py-3 text-sm font-bold text-[var(--text-main)] hd-shadow transition hover:bg-[var(--box-green-border)]"
               >
                 Browse library ↓
               </a>
               {featured && (
                 <Link
                   href={`/s/${featured.slug}/play`}
-                  className="flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-bold text-slate-200 transition hover:border-white/20 hover:text-white"
+                  className="hd-border-alt flex w-fit items-center gap-2 bg-white px-5 py-3 text-sm font-bold text-[var(--text-main)] hd-shadow transition hover:bg-[var(--box-yellow-bg)]"
                 >
                   <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z" />
@@ -86,17 +86,17 @@ export default function HomePage() {
 
             <div className="flex flex-wrap items-center gap-4 pt-1">
               <div className="flex items-baseline gap-1.5">
-                <span className="text-2xl font-bold text-white">{total}</span>
-                <span className="text-xs text-slate-500">
+                <span className="text-2xl font-bold text-[var(--text-main)]">{total}</span>
+                <span className="text-xs text-gray-600">
                   {total === 1 ? "simulation" : "simulations"}
                 </span>
               </div>
-              <span className="h-4 w-px bg-white/10" />
+              <span className="h-4 border-l-2 border-dashed border-gray-400" />
               {stats.map(({ cloud, count }) => (
                 <div key={cloud} className="flex items-center gap-1.5 text-xs">
                   <span className={`h-1.5 w-1.5 rounded-full ${CLOUD_DOT_CLASSES[cloud]}`} />
-                  <span className="font-bold text-slate-200">{CLOUD_LABELS[cloud]}</span>
-                  <span className="text-slate-500">{count}</span>
+                  <span className="font-bold text-[var(--text-main)]">{CLOUD_LABELS[cloud]}</span>
+                  <span className="text-gray-600">{count}</span>
                 </div>
               ))}
             </div>
@@ -111,14 +111,14 @@ export default function HomePage() {
       <main id="gallery" className="mx-auto w-full max-w-6xl flex-1 pb-16">
         <div className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-lg font-bold text-white">Simulation library</h2>
-            <p className="mt-0.5 text-xs text-slate-500">
+            <h2 className="section-header">Simulation library</h2>
+            <p className="mt-2 text-xs text-gray-600">
               Filter by cloud, domain, or difficulty — open any simulation to explore.
             </p>
           </div>
         </div>
 
-        <Suspense fallback={<div className="py-20 text-center text-sm text-slate-500">Loading...</div>}>
+        <Suspense fallback={<div className="py-20 text-center text-sm text-gray-600">Loading...</div>}>
           <GalleryClient simulations={simulations} filterOptions={filterOptions} />
         </Suspense>
       </main>
